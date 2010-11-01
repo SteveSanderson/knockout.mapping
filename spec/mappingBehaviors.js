@@ -23,7 +23,7 @@ var mockRemove = function(result) {
 
 describe('Mapping', {
 
-    'ko.mapping.toJS should unwrap observable values': function() {
+    'ko.mapping.toJS should unwrap observable values': function() {7
         var atomicValues = ["hello", 123, true, null, undefined, { a : 1 }];
         for (var i = 0; i < atomicValues.length; i++) {
             var data = ko.observable(atomicValues[i]);
@@ -55,7 +55,7 @@ describe('Mapping', {
         value_of(result[1]).should_be(1);
         value_of(result[2].someProp).should_be('Hey');
     },
-    
+
     'ko.mapping.toJSON should unwrap everything and then stringify': function() {
         var data = ko.observableArray(['a', 1, { someProp : ko.observable('Hey') }]);	
         var result = ko.mapping.toJSON(data);
@@ -143,15 +143,9 @@ describe('Mapping', {
 		var index = 0;
         var result = ko.mapping.fromJS({ a: [1, 2] }, {
 			create: function(model, parent) {
-				switch (index++) {
-					case 0:
-						value_of(parent).should_be(undefined);
-						value_of(ko.isObservable(model)).should_be(false);
-						break;
-					case 1:
-						value_of(parent).should_be("a");
-						value_of(ko.isObservable(model)).should_be(true);
-						break;
+				if (!index++) {
+					value_of(parent).should_be(undefined);
+					value_of(ko.isObservable(model)).should_be(false);
 				}
 				return model;
 			}
@@ -161,14 +155,13 @@ describe('Mapping', {
 
     'ko.mapping.fromJS should send an added callback for every array item that is added': function() {
 		var added = [];
-        var result = ko.mapping.fromJS({ a: [1, 2] }, {
-			create: function(data, parent) {
-				if (parent == "a") {
-					data.added = function(newValue) {
+		
+		var result = new ko.mapping.fromJS({ a: [1, 2] }, {
+			subscriptions: {
+				"a": function(event, newValue) {
+					if (event === "added")
 						added.push(newValue);
-					}
 				}
-				return data;
 			}
 		});
         value_of(added.length).should_be(2);
@@ -219,7 +212,7 @@ describe('Mapping', {
 		value_of(callbacksReceived).should_be(0);
 	},
 
-	'ko.mapping.updateFromJS should send callbacks when array elements are constructed': function() {
+	'ko.mapping.updateFromJS should not send callbacks when atomic array elements are constructed': function() {
 		var oldItems = { array: [] };
 		var newItems = {
 			array: [{ id : 1 }, { id : 2 }]
@@ -237,9 +230,7 @@ describe('Mapping', {
 			}
 		});
 		result = ko.mapping.updateFromJS(result, newItems);
-		value_of(items.length).should_be(2);
-		value_of(items[0].id()).should_be(1);
-		value_of(items[1].id()).should_be(2);
+		value_of(items.length).should_be(0);
 	},
 	
 	'ko.mapping.fromJS should send callbacks containing parent names when descendant objects are constructed': function() {
@@ -253,10 +244,12 @@ describe('Mapping', {
 			}
 		};
 		var parents = [];
-        var result = ko.mapping.fromJS(obj, { create: function(data, parent, property) {
-			parents.push(parent);
-			return data;
-		}});
+        var result = ko.mapping.fromJS(obj, {
+			create: function(data, parent) {
+				parents.push(parent);
+				return data;
+			}
+		});
 		value_of(parents.length).should_be(3);
 		value_of(parents[0]).should_be(undefined);
 		value_of(parents[1]).should_be("a");
@@ -364,27 +357,25 @@ describe('Mapping', {
 			]
 		}
 		
-		var result = ko.mapping.fromJS(obj, {
-			create: function(item, parent) {
-				if (parent == "a") {
-					item.mapKey = function(item, parentName) {
-						return item.id;
-					}
+		var options = {
+			keys: {
+				"a": function(item) {
+					return item.id;
 				}
-				return item;
 			}
-		});
+		};
+		var result = ko.mapping.fromJS(obj, options);
 		pushed = mockPush(result.a);
 		removed = mockRemove(result.a);
 
-		result = ko.mapping.updateFromJS(result, obj2);
+		result = ko.mapping.updateFromJS(result, obj2, options);
 		value_of(result.a().length).should_be(2);
 		value_of(pushed.length).should_be(1);
 		value_of(removed.length).should_be(1);
 		value_of(result.a()[0].value()).should_be("a1");
 		value_of(result.a()[1].value()).should_be("a3");
 	},
-	
+
     'ko.mapping.updateFromJS should escape from reference cycles': function() {
         var obj = {};
         obj.someProp = { owner : obj };
@@ -398,18 +389,22 @@ describe('Mapping', {
 		var obj2 = [{ id: 1 }, { id: 2 }];
 		
 		var mappedItems = [];
-		var result = ko.mapping.fromJS(obj, {
-			create: function(item, parent) {
-				item.added = function(newValue) {
-					mappedItems.push(newValue);
-				}
-				item.mapKey = function(item) {
+		
+		var options = {
+			keys: {
+				"root": function(item) {
 					return item.id;
 				}
-				return item;
+			},
+			subscriptions: {
+				"root": function(event, item) {
+					if (event == "added")
+						mappedItems.push(item);
+				}
 			}
-		});
-		result = ko.mapping.updateFromJS(result, obj2);
+		};
+		var result = ko.mapping.fromJS(obj, options);
+		result = ko.mapping.updateFromJS(result, obj2, options);
 		value_of(mappedItems.length).should_be(2);
 		value_of(mappedItems[0].id()).should_be(1);
 		value_of(mappedItems[1].id()).should_be(2);
@@ -431,15 +426,17 @@ describe('Mapping', {
 		var obj2 = [1];
 		
 		var items = [];
-		var result = ko.mapping.fromJS(obj, {
-			create: function(item, parent) {
-				item.deleted = function(item) {
-					items.push(item);
+		
+		var options = {
+			subscriptions: {
+				"root": function(event, item) {
+					if (event == "deleted")
+						items.push(item);
 				}
-				return item;
 			}
-		});
-		result = ko.mapping.updateFromJS(result, obj2);
+		};
+		var result = ko.mapping.fromJS(obj, options);
+		result = ko.mapping.updateFromJS(result, obj2, options);
 		value_of(items.length).should_be(1);
 		value_of(items[0]).should_be(2);
 	},
