@@ -1,6 +1,5 @@
 // Knockout Mapping plugin v0.5
 // License: Ms-Pl (http://www.opensource.org/licenses/ms-pl.html)
-
 // Google Closure Compiler helpers (used only to make the minified file smaller)
 ko.exportSymbol = function (publicPath, object) {
 	var tokens = publicPath.split(".");
@@ -30,7 +29,7 @@ ko.exportProperty = function (owner, publicName, object) {
 		if (arguments.length == 0) throw new Error("When calling ko.fromJS, pass the object you want to convert.");
 
 		options = options || {};
-		options.create = options.create || dummyCallback;
+		options.create = options.create || {};
 		options.keys = options.keys || {};
 		options.subscriptions = options.subscriptions || {};
 		options.mapInput = dummyCallback;
@@ -48,7 +47,9 @@ ko.exportProperty = function (owner, publicName, object) {
 		if (arguments.length < 2) throw new Error("When calling ko.updateFromJS, pass: the object to update and the object you want to update from.");
 
 		options = options || {};
-		options.create = options.create || dummyCallback;
+		options.create = options.create || {};
+		options.keys = options.keys || {};
+		options.subscriptions = options.subscriptions || {};
 
 		return updateViewModel(viewModel, jsObject, options);
 	};
@@ -97,7 +98,7 @@ ko.exportProperty = function (owner, publicName, object) {
 		} else {
 			parentName = parentName || "root";
 			var keyCallback = dummyCallback;
-			if ((options.keys) && (options.keys[parentName])) keyCallback = options.keys[parentName];
+			if (options.keys[parentName]) keyCallback = options.keys[parentName];
 			compareArrays(ko.utils.unwrapObservable(mappedRootObject), rootObject, parentName, keyCallback, function (event, item) {
 				switch (event) {
 				case "added":
@@ -210,17 +211,15 @@ ko.exportProperty = function (owner, publicName, object) {
 			return mappedRootObject;
 		}
 
-		var rootObjectIsArray = rootObject instanceof Array;
+		parentName = parentName || "root";
 
+		var rootObjectIsArray = rootObject instanceof Array;
 		var outputProperties = rootObjectIsArray ? [] : {};
 
 		var mappedRootObject;
-		if (options.create) mappedRootObject = options.create(rootObject, parentName);
+		if (options.create[parentName]) mappedRootObject = options.create[parentName](rootObject, parentName);
+		if (!mappedRootObject) mappedRootObject = options.mapOutput(outputProperties, isArrayMember);
 
-		// If the 'create' callback just returned the original, we should map it ourselves
-		if (mappedRootObject === rootObject) mappedRootObject = options.mapOutput(outputProperties, isArrayMember);
-
-		parentName = parentName || "root";
 		if (rootObjectIsArray) {
 			var subscriptions = options.subscriptions[parentName];
 			var prevArray = [];
@@ -291,7 +290,7 @@ ko.exportProperty = function (owner, publicName, object) {
 		if (arguments.length == 0) throw new Error("When calling ko.mapping.toJS, pass the object you want to convert.");
 
 		options = {};
-		options.create = dummyCallback;
+		options.create = options.create || {};
 		options.keys = options.keys || {};
 		options.subscriptions = options.subscriptions || {};
 		options.mapInput = function (valueToMap) {
