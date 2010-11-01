@@ -1,0 +1,1 @@
+Object mapping plugin for [Knockout](http://knockoutjs.com/) - docs to be written
