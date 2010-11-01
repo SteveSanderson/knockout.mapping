@@ -91,7 +91,9 @@ ko.exportProperty = function (owner, publicName, object) {
 				// For non-atomic types, visit all properties and update recursively
 				visitPropertiesOrArrayEntries(rootObject, function (indexer) {
 					if (!ko.isObservable(mappedRootObject[indexer])) {
-						mappedRootObject[indexer] = undefined;
+						// In case we are adding a new property, fill it with the rootObject's property value as a placeholder,
+						// to prevent recursion.
+						mappedRootObject[indexer] = rootObject[indexer];
 					}
 					mappedRootObject[indexer] = updateViewModel(mappedRootObject[indexer], rootObject[indexer], options, visitedObjects, indexer);
 				});
