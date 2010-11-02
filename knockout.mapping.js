@@ -14,6 +14,8 @@ ko.exportProperty = function (owner, publicName, object) {
 
 (function () {
 	ko.mapping = {};
+	
+	var mappingProperty = "__ko_mapping__";
 
 	function getType(x) {
 		if ((x) && (typeof(x) === "object") && (x.constructor.toString().match(/date/i) !== null)) return "date";
@@ -32,7 +34,10 @@ ko.exportProperty = function (owner, publicName, object) {
 	ko.mapping.fromJS = function (jsObject, options) {
 		if (arguments.length == 0) throw new Error("When calling ko.fromJS, pass the object you want to convert.");
 
-		return updateViewModel(undefined, jsObject, fillOptions(options));
+		options = fillOptions(options);
+		var result = updateViewModel(undefined, jsObject, options);
+		result[mappingProperty] = options;
+		return result;
 	};
 
 	ko.mapping.fromJSON = function (jsonString, options) {
@@ -40,10 +45,12 @@ ko.exportProperty = function (owner, publicName, object) {
 		return ko.mapping.fromJS(parsed, options);
 	};
 
-	ko.mapping.updateFromJS = function (viewModel, jsObject, options) {
+	ko.mapping.updateFromJS = function (viewModel, jsObject) {
 		if (arguments.length < 2) throw new Error("When calling ko.updateFromJS, pass: the object to update and the object you want to update from.");
+		var options = viewModel[mappingProperty];
+		if (!options) throw new Error("The object you are trying to update was not created by a 'fromJS' or 'fromJSON' mapping!");
 
-		return updateViewModel(viewModel, jsObject, fillOptions(options));
+		return updateViewModel(viewModel, jsObject, options);
 	};
 
 	function updateViewModel(mappedRootObject, rootObject, options, visitedObjects, parentName) {
@@ -91,9 +98,9 @@ ko.exportProperty = function (owner, publicName, object) {
 				// For non-atomic types, visit all properties and update recursively
 				visitPropertiesOrArrayEntries(rootObject, function (indexer) {
 					if (!ko.isObservable(mappedRootObject[indexer])) {
-						// In case we are adding a new property, fill it with the rootObject's property value as a placeholder,
+						// In case we are adding a new property, fill it with the previously mapped rootObject's property value as a placeholder,
 						// to prevent recursion.
-						mappedRootObject[indexer] = rootObject[indexer];
+						mappedRootObject[indexer] = visitedObjects.get(rootObject[indexer]);
 					}
 					mappedRootObject[indexer] = updateViewModel(mappedRootObject[indexer], rootObject[indexer], options, visitedObjects, indexer);
 				});

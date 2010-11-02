@@ -83,9 +83,9 @@ describe('Mapping', {
 			ko.mapping.fromJS()
 		}
 		catch (ex) {
-			didThow = true
+			didThrow = true
 		}
-		value_of(didThow).should_be(true);
+		value_of(didThrow).should_be(true);
 	},
 
 	'ko.mapping.fromJS should return an observable if you supply an atomic value': function () {
@@ -158,7 +158,7 @@ describe('Mapping', {
 			owner: obj
 		};
 		var result = ko.mapping.fromJS(obj);
-		value_of(result.someProp.owner).should_be(result);
+		value_of(result.someProp.owner === result).should_be(true);
 	},
 
 	'ko.mapping.fromJS should send relevant create callbacks': function () {
@@ -193,20 +193,36 @@ describe('Mapping', {
 		value_of(ko.isObservable(result.a)).should_be(true);
 		value_of(result.a()).should_be("hello");
 	},
+	
+	'ko.mapping.updateFromJS fails on objects that were not first mapped using fromJS': function() {
+		var result;
+		var didThrow = false;
+		try {
+			result = ko.mapping.updateFromJS(result, {
+				a: "hello"
+			});
+		}
+		catch (ex) {
+			didThrow = true
+		}
+		value_of(didThrow).should_be(true);
+	},
 
 	'ko.mapping.updateFromJS should update objects that were overriden in the create callback': function () {
-		var items = [];
-		var index = 0;
-		var result = ko.mapping.fromJS({
-			a: "hello"
-		}, {
+		var options = {
 			created: {
 				"root": function (model) {
 					var overridenModel = {};
 					return overridenModel;
 				}
 			}
-		});
+		};
+		
+		var items = [];
+		var index = 0;
+		var result = ko.mapping.fromJS({
+			a: "hello"
+		}, options);
 
 		result = ko.mapping.updateFromJS(result, {
 			a: "bye"
@@ -261,7 +277,7 @@ describe('Mapping', {
 			data: {
 				a: [1, 2]
 			}
-		}, options);
+		});
 
 		value_of(items.length).should_be(2);
 		value_of(ko.isObservable(result.data.a)).should_be(true);
@@ -281,7 +297,7 @@ describe('Mapping', {
 		var result = ko.mapping.fromJS({}, options);
 		result = ko.mapping.updateFromJS(result, {
 			a: [1, 2]
-		}, options);
+		});
 		value_of(added.length).should_be(2);
 		value_of(added[0]).should_be(1);
 		value_of(added[1]).should_be(2);
@@ -300,7 +316,7 @@ describe('Mapping', {
 		var result = ko.mapping.fromJS({ a: [] }, options);
 		result = ko.mapping.updateFromJS(result, {
 			a: [1, 2]
-		}, options);
+		});
 		value_of(added.length).should_be(2);
 		value_of(added[0]).should_be(1);
 		value_of(added[1]).should_be(2);
@@ -321,7 +337,7 @@ describe('Mapping', {
 		}, options);
 		result = ko.mapping.updateFromJS(result, {
 			a: [1, 2]
-		}, options);
+		});
 		value_of(added.length).should_be(2);
 		value_of(added[0]).should_be(1);
 		value_of(added[1]).should_be(2);
@@ -454,6 +470,7 @@ describe('Mapping', {
 		};
 
 		var result;
+		result = ko.mapping.fromJS({});
 		result = ko.mapping.updateFromJS(result, obj);
 		value_of(result.a().length).should_be(2);
 		value_of(result.a()[0]).should_be("a1");
@@ -568,8 +585,7 @@ describe('Mapping', {
 		pushed = mockPush(result.a);
 		removed = mockRemove(result.a);
 
-		debugger;
-		result = ko.mapping.updateFromJS(result, obj2, options);
+		result = ko.mapping.updateFromJS(result, obj2);
 		value_of(result.a().length).should_be(2);
 		value_of(pushed.length).should_be(1);
 		value_of(removed.length).should_be(1);
@@ -611,7 +627,7 @@ describe('Mapping', {
 			}
 		};
 		var result = ko.mapping.fromJS(obj, options);
-		result = ko.mapping.updateFromJS(result, obj2, options);
+		result = ko.mapping.updateFromJS(result, obj2);
 		value_of(mappedItems.length).should_be(2);
 		value_of(mappedItems[0].id()).should_be(1);
 		value_of(mappedItems[1].id()).should_be(2);
@@ -649,7 +665,7 @@ describe('Mapping', {
 			}
 		};
 		var result = ko.mapping.fromJS(obj, options);
-		result = ko.mapping.updateFromJS(result, obj2, options);
+		result = ko.mapping.updateFromJS(result, obj2);
 		value_of(items.length).should_be(1);
 		value_of(items[0]).should_be(2);
 	},
