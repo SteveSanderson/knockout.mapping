@@ -24,7 +24,7 @@ ko.exportProperty = function (owner, publicName, object) {
 	
 	function fillOptions(options) {
 		options = options || {};
-		options.created = options.created || {};
+		options.create = options.create || {};
 		options.keys = options.keys || {};
 		options.subscriptions = options.subscriptions || {};
 		return options;
@@ -66,11 +66,11 @@ ko.exportProperty = function (owner, publicName, object) {
 		var isArray = ko.utils.unwrapObservable(rootObject) instanceof Array;
 		
 		var createCallback = function(defaultObject) {
-			// When using the 'created' callback, the result is used as a model for the mapped root object
+			// When using the 'create' callback, the result is used as a model for the mapped root object
 			var createdMappedObject;
-			if ((options.created[parentName]) && (canHaveProperties(rootObject) && (!isArray))) {
+			if ((options.create[parentName]) && (canHaveProperties(rootObject) && (!isArray))) {
 				var _options = fillOptions();
-				createdMappedObject = options.created[parentName](rootObject, parentName);
+				createdMappedObject = options.create[parentName](rootObject, parentName);
 			}
 			
 			return createdMappedObject || defaultObject;

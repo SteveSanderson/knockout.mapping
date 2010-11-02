@@ -112,7 +112,7 @@ describe('Mapping', {
 
 	'ko.mapping.fromJS should not wrap functions in an observable': function () {
 		var result = ko.mapping.fromJS({}, {
-			created: {
+			create: {
 				"": function(model) {
 					return {
 						myFunc: function() {
@@ -156,7 +156,7 @@ describe('Mapping', {
 				a2: "a2"
 			}
 		}, {
-			created: {
+			create: {
 				"": function(model) {
 					return {
 						a: {
@@ -179,7 +179,7 @@ describe('Mapping', {
 		}
 	
 		var result = ko.mapping.fromJS({}, {
-			created: {
+			create: {
 				"": function(model) {
 					return {
 						a: new dummyObject({
@@ -237,7 +237,7 @@ describe('Mapping', {
 		var result = ko.mapping.fromJS({
 			a: "hello"
 		}, {
-			created: {
+			create: {
 				"": function (model) {
 					index++;
 					return model;
@@ -249,7 +249,7 @@ describe('Mapping', {
 
 	'ko.mapping.updateFromJS should not overwrite objects in arrays that were specified in the overriden model in the create callback': function () {
 		var options = {
-			created: {
+			create: {
 				"": function(model) {
 					var overridenModel = {
 						a: ""
@@ -279,7 +279,7 @@ describe('Mapping', {
 			a: "a",
 			b: "b"
 		}, {
-			created: {
+			create: {
 				"": function (model) {
 					var overridenModel = {
 						a: ""
@@ -311,7 +311,7 @@ describe('Mapping', {
 	'ko.mapping.updateFromJS should not call the create callback for existing objects': function () {
 		var numCreate = 0;
 		var options = {
-			created: {
+			create: {
 				"": function (model) {
 					numCreate++;
 					var overridenModel = {};
@@ -352,7 +352,7 @@ describe('Mapping', {
 		var index = 0;
 		
 		var options = {
-			created: {
+			create: {
 				"": function (model) {
 					var overridenModel = {
 						data: {
@@ -440,7 +440,7 @@ describe('Mapping', {
 	
 	'ko.mapping.updateFromJS should not make observable anything that is not in the js object when overriding the model': function () {
 		var options = {
-			created: {
+			create: {
 				"": function(model) {
 					return {
 						a: "a"
@@ -534,7 +534,7 @@ describe('Mapping', {
 		var callbacksReceived = 0;
 		for (var i = 0; i < atomicValues.length; i++) {
 			var result = ko.mapping.fromJS(atomicValues[i], {
-				created: {
+				create: {
 					"": function (item) {
 						callbacksReceived++;
 						return item;
@@ -587,7 +587,7 @@ describe('Mapping', {
 			return item;
 		};
 		var result = ko.mapping.fromJS(obj, {
-			created: {
+			create: {
 				"": pushParent,
 				"a": pushParent,
 				"a.a1": pushParent,
@@ -616,7 +616,7 @@ describe('Mapping', {
 			//return item;
 		};
 		var result = ko.mapping.fromJS(obj, {
-			created: {
+			create: {
 				"": pushParent,
 				"a": pushParent,
 				"a.a1": pushParent,
