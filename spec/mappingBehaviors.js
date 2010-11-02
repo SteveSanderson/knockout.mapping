@@ -110,7 +110,22 @@ describe('Mapping', {
 		value_of(ko.isObservable(ko.mapping.fromJS({}))).should_be(false);
 	},
 
-	'ko.mapping.fromJS should map the top-level properties on the supplied object as observables': function () {
+	'ko.mapping.fromJS should not wrap functions in an observable': function () {
+		var result = ko.mapping.fromJS({}, {
+			created: {
+				"": function(model) {
+					return {
+						myFunc: function() {
+							return 123;
+						}
+					}
+				}
+			}
+		});
+		value_of(result.myFunc()).should_be(123);
+	},
+
+	'ko.mapping.fromJS should map the top-level atomic properties on the supplied object as observables': function () {
 		var result = ko.mapping.fromJS({
 			a: 123,
 			b: 'Hello',
@@ -122,6 +137,61 @@ describe('Mapping', {
 		value_of(result.a()).should_be(123);
 		value_of(result.b()).should_be('Hello');
 		value_of(result.c()).should_be(true);
+	},
+
+	'ko.mapping.fromJS should not map the top-level non-atomic properties on the supplied object as observables': function () {
+		var result = ko.mapping.fromJS({
+			a: {
+				a1: "Hello"
+			}
+		});
+		value_of(ko.isObservable(result.a)).should_be(false);
+		value_of(ko.isObservable(result.a.a1)).should_be(true);
+		value_of(result.a.a1()).should_be('Hello');
+	},
+
+	'ko.mapping.fromJS should not map the top-level non-atomic properties on the supplied overriden model as observables': function () {
+		var result = ko.mapping.fromJS({
+			a: {
+				a2: "a2"
+			}
+		}, {
+			created: {
+				"": function(model) {
+					return {
+						a: {
+							a1: "a1"
+						}
+					};
+				}
+			}
+		});
+		value_of(ko.isObservable(result.a)).should_be(false);
+		value_of(ko.isObservable(result.a.a1)).should_be(false);
+		value_of(result.a.a2).should_be(undefined);
+		value_of(result.a.a1).should_be('a1');
+	},
+
+	'ko.mapping.fromJS should not map top-level objects on the supplied overriden model as observables': function () {
+		var dummyObject = function (options) {
+			this.a1 = options.a1;
+			return this;
+		}
+	
+		var result = ko.mapping.fromJS({}, {
+			created: {
+				"": function(model) {
+					return {
+						a: new dummyObject({
+							a1: "Hello"
+						})
+					};
+				}
+			}
+		});
+		value_of(ko.isObservable(result.a)).should_be(false);
+		value_of(ko.isObservable(result.a.a1)).should_be(false);
+		value_of(result.a.a1).should_be('Hello');
 	},
 
 	'ko.mapping.fromJS should map descendant properties on the supplied object as observables': function () {
@@ -177,28 +247,58 @@ describe('Mapping', {
 		value_of(index).should_be(1);
 	},
 
-	'ko.mapping.fromJS should accept objects that were overriden in the create callback': function () {
+	'ko.mapping.updateFromJS should not overwrite objects in arrays that were specified in the overriden model in the create callback': function () {
+		var options = {
+			created: {
+				"": function(model) {
+					var overridenModel = {
+						a: ""
+					};
+					return overridenModel;
+				}
+			}
+		}
+		
+		var result = ko.mapping.fromJS([], options);
+		ko.mapping.updateFromJS(result, [{
+			a: "a",
+			b: "b"
+		}]);
+
+		value_of(ko.isObservable(result)).should_be(true);
+		value_of(ko.isObservable(result()[0].a)).should_be(false);
+		value_of(result()[0].a).should_be("");
+		value_of(ko.isObservable(result()[0].b)).should_be(true);
+		value_of(result()[0].b()).should_be("b");
+	},
+
+	'ko.mapping.fromJS should not overwrite objects that were specified in the overriden model in the create callback': function () {
 		var items = [];
 		var index = 0;
 		var result = ko.mapping.fromJS({
-			a: "hello"
+			a: "a",
+			b: "b"
 		}, {
 			created: {
 				"": function (model) {
-					var overridenModel = {};
+					var overridenModel = {
+						a: ""
+					};
 					return overridenModel;
 				}
 			}
 		});
-		value_of(ko.isObservable(result.a)).should_be(true);
-		value_of(result.a()).should_be("hello");
+		value_of(ko.isObservable(result.a)).should_be(false);
+		value_of(result.a).should_be("");
+		value_of(ko.isObservable(result.b)).should_be(true);
+		value_of(result.b()).should_be("b");
 	},
 	
 	'ko.mapping.updateFromJS fails on objects that were not first mapped using fromJS': function() {
 		var result;
 		var didThrow = false;
 		try {
-			result = ko.mapping.updateFromJS(result, {
+			ko.mapping.updateFromJS(result, {
 				a: "hello"
 			});
 		}
@@ -208,10 +308,12 @@ describe('Mapping', {
 		value_of(didThrow).should_be(true);
 	},
 
-	'ko.mapping.updateFromJS should update objects that were overriden in the create callback': function () {
+	'ko.mapping.updateFromJS should not call the create callback for existing objects': function () {
+		var numCreate = 0;
 		var options = {
 			created: {
 				"": function (model) {
+					numCreate++;
 					var overridenModel = {};
 					return overridenModel;
 				}
@@ -224,12 +326,11 @@ describe('Mapping', {
 			a: "hello"
 		}, options);
 
-		result = ko.mapping.updateFromJS(result, {
+		ko.mapping.updateFromJS(result, {
 			a: "bye"
 		});
 
-		value_of(ko.isObservable(result.a)).should_be(true);
-		value_of(result.a()).should_be("bye");
+		value_of(numCreate).should_be(1);
 	},
 
 	'ko.mapping.updateFromJS should not overwrite the existing observable array': function () {
@@ -239,14 +340,14 @@ describe('Mapping', {
 		
 		var resultA = result.a;
 
-		result = ko.mapping.updateFromJS(result, {
+		ko.mapping.updateFromJS(result, {
 			a: [1]
 		});
 		
 		value_of(resultA).should_be(result.a);
 	},
-	
-	'ko.mapping.updateFromJS should update arrays that were overriden in the create callback': function () {
+
+	'ko.mapping.updateFromJS should update observable arrays that were created in the create callback': function () {
 		var items = [];
 		var index = 0;
 		
@@ -255,7 +356,7 @@ describe('Mapping', {
 				"": function (model) {
 					var overridenModel = {
 						data: {
-							a: []
+							a: ko.observableArray([])
 						}
 					}
 					return overridenModel;
@@ -273,7 +374,9 @@ describe('Mapping', {
 			data: undefined
 		}, options);
 
-		result = ko.mapping.updateFromJS(result, {
+		value_of(ko.isObservable(result.data.a)).should_be(true);
+		
+		ko.mapping.updateFromJS(result, {
 			data: {
 				a: [1, 2]
 			}
@@ -295,7 +398,7 @@ describe('Mapping', {
 			}
 		};
 		var result = ko.mapping.fromJS({}, options);
-		result = ko.mapping.updateFromJS(result, {
+		ko.mapping.updateFromJS(result, {
 			a: [1, 2]
 		});
 		value_of(added.length).should_be(2);
@@ -314,7 +417,7 @@ describe('Mapping', {
 			}
 		};
 		var result = ko.mapping.fromJS({ a: [] }, options);
-		result = ko.mapping.updateFromJS(result, {
+		ko.mapping.updateFromJS(result, {
 			a: [1, 2]
 		});
 		value_of(added.length).should_be(2);
@@ -322,6 +425,41 @@ describe('Mapping', {
 		value_of(added[1]).should_be(2);
 	},
 
+	'ko.mapping.updateFromJS should not make observable anything that is not in the js object': function () {
+		var result = ko.mapping.fromJS({});
+		result.a = "a";
+		ko.mapping.updateFromJS(result, {
+			b: "b"
+		});
+		
+		value_of(ko.isObservable(result.a)).should_be(false);
+		value_of(ko.isObservable(result.b)).should_be(true);
+		value_of(result.a).should_be("a");
+		value_of(result.b()).should_be("b");
+	},
+	
+	'ko.mapping.updateFromJS should not make observable anything that is not in the js object when overriding the model': function () {
+		var options = {
+			created: {
+				"": function(model) {
+					return {
+						a: "a"
+					}
+				}
+			}
+		};
+	
+		var result = ko.mapping.fromJS({}, options);
+		ko.mapping.updateFromJS(result, {
+			b: "b"
+		});
+		
+		value_of(ko.isObservable(result.a)).should_be(false);
+		value_of(ko.isObservable(result.b)).should_be(true);
+		value_of(result.a).should_be("a");
+		value_of(result.b()).should_be("b");
+	},
+	
 	'ko.mapping.updateFromJS should send an added callback for every array item that is added': function () {
 		var added = [];
 
@@ -335,7 +473,7 @@ describe('Mapping', {
 		var result = ko.mapping.fromJS({
 			a: []
 		}, options);
-		result = ko.mapping.updateFromJS(result, {
+		ko.mapping.updateFromJS(result, {
 			a: [1, 2]
 		});
 		value_of(added.length).should_be(2);
@@ -429,11 +567,11 @@ describe('Mapping', {
 				}
 			}
 		});
-		result = ko.mapping.updateFromJS(result, newItems);
+		ko.mapping.updateFromJS(result, newItems);
 		value_of(items.length).should_be(2);
 	},
 
-	'ko.mapping.fromJS should send callbacks containing parent names when descendant objects are constructed': function () {
+	'ko.mapping.fromJS should not send callbacks containing parent names when descendant objects are constructed': function () {
 		var obj = {
 			a: {
 				a1: "hello",
@@ -458,6 +596,35 @@ describe('Mapping', {
 				"a.a3.a31": pushParent
 			}
 		});
+		value_of(parents.length).should_be(1);
+		value_of(parents[0]).should_be("");
+	},
+
+	'ko.mapping.fromJS should send callbacks containing parent names when descendant objects are not constructed': function () {
+		var obj = {
+			a: {
+				a1: "hello",
+				a2: 234,
+				a3: {
+					a31: null
+				}
+			}
+		};
+		var parents = [];
+		var pushParent = function (item, parent) {
+			parents.push(parent);
+			//return item;
+		};
+		var result = ko.mapping.fromJS(obj, {
+			created: {
+				"": pushParent,
+				"a": pushParent,
+				"a.a1": pushParent,
+				"a.a2": pushParent,
+				"a.a3": pushParent,
+				"a.a3.a31": pushParent
+			}
+		});
 		value_of(parents.length).should_be(3);
 		value_of(parents[0]).should_be("");
 		value_of(parents[1]).should_be("a");
@@ -471,7 +638,7 @@ describe('Mapping', {
 
 		var result;
 		result = ko.mapping.fromJS({});
-		result = ko.mapping.updateFromJS(result, obj);
+		ko.mapping.updateFromJS(result, obj);
 		value_of(result.a().length).should_be(2);
 		value_of(result.a()[0]).should_be("a1");
 		value_of(result.a()[1]).should_be("a2");
@@ -483,7 +650,7 @@ describe('Mapping', {
 
 		for (var i = 0; i < atomicValues.length; i++) {
 			var result = ko.mapping.fromJS(atomicValues[i]);
-			result = ko.mapping.updateFromJS(result, atomicValues2[i]);
+			ko.mapping.updateFromJS(result, atomicValues2[i]);
 			value_of(ko.isObservable(result)).should_be(true);
 			value_of(result()).should_be(atomicValues2[i]);
 		}
@@ -507,7 +674,7 @@ describe('Mapping', {
 		}
 
 		var result = ko.mapping.fromJS(obj);
-		result = ko.mapping.updateFromJS(result, obj2);
+		ko.mapping.updateFromJS(result, obj2);
 		value_of(result.a()).should_be("prop2");
 		value_of(result.b.b1()).should_be(124);
 		value_of(result.b.b2()).should_be("b22");
@@ -525,7 +692,7 @@ describe('Mapping', {
 		}
 
 		var result = ko.mapping.fromJS(obj);
-		result = ko.mapping.updateFromJS(result, obj2);
+		ko.mapping.updateFromJS(result, obj2);
 		value_of(result.a()).should_be("prop2");
 		value_of(result.b()).should_include("b1");
 		value_of(result.b()).should_include("b2");
@@ -539,7 +706,7 @@ describe('Mapping', {
 		pushed = mockPush(result);
 		removed = mockRemove(result);
 
-		result = ko.mapping.updateFromJS(result, obj2);
+		ko.mapping.updateFromJS(result, obj2);
 		value_of(result().length).should_be(3);
 		value_of(pushed.length).should_be(3);
 		value_of(removed.length).should_be(3);
@@ -585,7 +752,7 @@ describe('Mapping', {
 		pushed = mockPush(result.a);
 		removed = mockRemove(result.a);
 
-		result = ko.mapping.updateFromJS(result, obj2);
+		ko.mapping.updateFromJS(result, obj2);
 		value_of(result.a().length).should_be(2);
 		value_of(pushed.length).should_be(1);
 		value_of(removed.length).should_be(1);
@@ -597,7 +764,7 @@ describe('Mapping', {
 		var obj = {};
 		obj.owner = obj;
 		var result = ko.mapping.fromJS(obj);
-		var result = ko.mapping.updateFromJS(result, obj);
+		ko.mapping.updateFromJS(result, obj);
 		value_of(result.owner).should_be(result);
 	},
 
@@ -627,7 +794,7 @@ describe('Mapping', {
 			}
 		};
 		var result = ko.mapping.fromJS(obj, options);
-		result = ko.mapping.updateFromJS(result, obj2);
+		ko.mapping.updateFromJS(result, obj2);
 		value_of(mappedItems.length).should_be(2);
 		value_of(mappedItems[0].id()).should_be(1);
 		value_of(mappedItems[1].id()).should_be(2);
@@ -645,7 +812,7 @@ describe('Mapping', {
 		}]);
 
 		var result = ko.mapping.fromJS(obj);
-		result = ko.mapping.updateFromJS(result, obj2);
+		ko.mapping.updateFromJS(result, obj2);
 		value_of(result().length).should_be(2);
 		value_of(result()[0].id()).should_be(1);
 		value_of(result()[1].id()).should_be(2);
@@ -665,7 +832,7 @@ describe('Mapping', {
 			}
 		};
 		var result = ko.mapping.fromJS(obj, options);
-		result = ko.mapping.updateFromJS(result, obj2);
+		ko.mapping.updateFromJS(result, obj2);
 		value_of(items.length).should_be(1);
 		value_of(items[0]).should_be(2);
 	},

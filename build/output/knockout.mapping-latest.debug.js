@@ -22,7 +22,7 @@ ko.exportProperty = function (owner, publicName, object) {
 	var mappingProperty = "__ko_mapping__";
 
 	function getType(x) {
-		if ((x) && (typeof(x) === "object") && (x.constructor.toString().match(/date/i) !== null)) return "date";
+		if ((x) && (typeof(x) === "object") && (x.constructor == (new Date).constructor)) return "date";
 		return typeof x;
 	}
 	
@@ -40,6 +40,7 @@ ko.exportProperty = function (owner, publicName, object) {
 
 		options = fillOptions(options);
 		var result = updateViewModel(undefined, jsObject, options);
+		result[mappingProperty] = result[mappingProperty] || {};
 		result[mappingProperty] = options;
 		return result;
 	};
@@ -68,57 +69,82 @@ ko.exportProperty = function (owner, publicName, object) {
 	function updateViewModel(mappedRootObject, rootObject, options, visitedObjects, parentName) {
 		var isArray = ko.utils.unwrapObservable(rootObject) instanceof Array;
 		
+		var createCallback = function(defaultObject) {
+			// When using the 'created' callback, the result is used as a model for the mapped root object
+			var createdMappedObject;
+			if ((options.created[parentName]) && (canHaveProperties(rootObject) && (!isArray))) {
+				var _options = fillOptions();
+				createdMappedObject = options.created[parentName](rootObject, parentName);
+			}
+			
+			return createdMappedObject || defaultObject;
+		}
+		
 		visitedObjects = visitedObjects || new objectLookup();
 		if (visitedObjects.get(rootObject)) return mappedRootObject;
 
 		parentName = parentName || "";
-
-		// When using the 'created' callback, the result is used as a model for the mapped root object (which is by this point still not observable)
-		if ((options.created[parentName]) && (canHaveProperties(rootObject) && (!isArray))) {
-			var _options = fillOptions();
-			var createdRootObject = options.created[parentName](rootObject, parentName);
-			mappedRootObject = updateViewModel(undefined, createdRootObject, _options);
-		}
-
+		
 		if (!isArray) {
 
 			// For atomic types, do a direct update on the observable
 			if (!canHaveProperties(rootObject)) {
-
-				// If it's an array element, it should not be observable, otherwise it should
-				if (ko.isWriteableObservable(mappedRootObject)) {
-					mappedRootObject(ko.utils.unwrapObservable(rootObject));
-				} else {
-					mappedRootObject = ko.observable(ko.utils.unwrapObservable(rootObject));
-					visitedObjects.save(rootObject, mappedRootObject);
+				switch (getType(rootObject)) {
+					case "function":
+						mappedRootObject = rootObject;
+						break;
+					default:
+						if (ko.isWriteableObservable(mappedRootObject)) {
+							mappedRootObject(ko.utils.unwrapObservable(rootObject));
+						} else {
+							mappedRootObject = ko.observable(ko.utils.unwrapObservable(rootObject));
+						}
+						break;
 				}
 
+				visitedObjects.save(rootObject, mappedRootObject);
+				
 			} else {
 
+				// Non-writeable observables or atomic properties that are created during the creation callback should be ignored when mapping
+				ignoreProperties = [];
 				if (!mappedRootObject) {
-					mappedRootObject = {};
+					mappedRootObject = createCallback({});
+					visitPropertiesOrArrayEntries(mappedRootObject, function (indexer) {
+						if (!ko.isWriteableObservable(mappedRootObject[indexer])) {
+							ignoreProperties[indexer] = true;
+						}
+					});
 				}
 
 				visitedObjects.save(rootObject, mappedRootObject);
 
 				// For non-atomic types, visit all properties and update recursively
 				visitPropertiesOrArrayEntries(rootObject, function (indexer) {
-					if (!ko.isObservable(mappedRootObject[indexer])) {
-						// In case we are adding a new property, fill it with the previously mapped rootObject's property value as a placeholder,
-						// to prevent recursion.
-						mappedRootObject[indexer] = visitedObjects.get(rootObject[indexer]);
+					if (!ignoreProperties[indexer]) {
+					
+						var mappedProperty;
+						
+						var prevMappedProperty = visitedObjects.get(rootObject[indexer]);
+						if (prevMappedProperty) {
+							// In case we are adding an already mapped property, fill it with the previously mapped property value to prevent recursion.
+							mappedRootObject[indexer] = prevMappedProperty;
+						} else {
+							mappedRootObject[indexer] = updateViewModel(mappedRootObject[indexer], rootObject[indexer], options, visitedObjects, generateName(parentName, indexer));
+						}
+					
 					}
-					mappedRootObject[indexer] = updateViewModel(mappedRootObject[indexer], rootObject[indexer], options, visitedObjects, generateName(parentName, indexer));
 				});
 			}
 		} else {
 			if (!ko.isObservable(mappedRootObject)) {
-				mappedRootObject = ko.observableArray([]);
+				mappedRootObject = createCallback(ko.observableArray([]));
 			}
 
 			var keyCallback = function (x) {
 				return x;
 			}
+			
 			if (options.keys[parentName]) keyCallback = options.keys[parentName];
 			
 			var subscriptions = getArraySubscriptions(options, parentName);
