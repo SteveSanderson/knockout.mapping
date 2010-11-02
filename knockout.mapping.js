@@ -52,20 +52,22 @@ ko.exportProperty = function (owner, publicName, object) {
 
 		return updateViewModel(viewModel, jsObject, options);
 	};
+	
+	function generateName(parentName, indexer) {
+		if (!parentName) {
+			return indexer;
+		} else {
+			return parentName + "." + indexer;
+		}
+	}
 
 	function updateViewModel(mappedRootObject, rootObject, options, visitedObjects, parentName) {
 		var isArray = ko.utils.unwrapObservable(rootObject) instanceof Array;
-
-		var createMappedObject = function (object, parentName) {
-			// Map the new item and map all of its child properties.
-			var mapped = updateViewModel(undefined, object, options, visitedObjects, parentName);
-			return mapped;
-		}
 		
 		visitedObjects = visitedObjects || new objectLookup();
 		if (visitedObjects.get(rootObject)) return mappedRootObject;
 
-		parentName = parentName || "root";
+		parentName = parentName || "";
 
 		// When using the 'created' callback, the result is used as a model for the mapped root object (which is by this point still not observable)
 		if ((options.created[parentName]) && (canHaveProperties(rootObject) && (!isArray))) {
@@ -102,7 +104,7 @@ ko.exportProperty = function (owner, publicName, object) {
 						// to prevent recursion.
 						mappedRootObject[indexer] = visitedObjects.get(rootObject[indexer]);
 					}
-					mappedRootObject[indexer] = updateViewModel(mappedRootObject[indexer], rootObject[indexer], options, visitedObjects, indexer);
+					mappedRootObject[indexer] = updateViewModel(mappedRootObject[indexer], rootObject[indexer], options, visitedObjects, generateName(parentName, indexer));
 				});
 			}
 		} else {
@@ -118,7 +120,7 @@ ko.exportProperty = function (owner, publicName, object) {
 			compareArrays(ko.utils.unwrapObservable(mappedRootObject), rootObject, parentName, keyCallback, function (event, item) {
 				switch (event) {
 				case "added":
-					var mappedItem = ko.utils.unwrapObservable(createMappedObject(item, parentName));
+					var mappedItem = ko.utils.unwrapObservable(updateViewModel(undefined, item, options, visitedObjects, parentName));
 					mappedRootObject.push(mappedItem);
 					break;
 				case "retained":

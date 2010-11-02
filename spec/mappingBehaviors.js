@@ -168,7 +168,7 @@ describe('Mapping', {
 			a: "hello"
 		}, {
 			created: {
-				"root": function (model) {
+				"": function (model) {
 					index++;
 					return model;
 				}
@@ -184,7 +184,7 @@ describe('Mapping', {
 			a: "hello"
 		}, {
 			created: {
-				"root": function (model) {
+				"": function (model) {
 					var overridenModel = {};
 					return overridenModel;
 				}
@@ -211,7 +211,7 @@ describe('Mapping', {
 	'ko.mapping.updateFromJS should update objects that were overriden in the create callback': function () {
 		var options = {
 			created: {
-				"root": function (model) {
+				"": function (model) {
 					var overridenModel = {};
 					return overridenModel;
 				}
@@ -252,7 +252,7 @@ describe('Mapping', {
 		
 		var options = {
 			created: {
-				"root": function (model) {
+				"": function (model) {
 					var overridenModel = {
 						data: {
 							a: []
@@ -262,7 +262,7 @@ describe('Mapping', {
 				}
 			},
 			subscriptions: {
-				"a": function(event, item) {
+				"data.a": function(event, item) {
 					if (event == "added")
 						items.push(item);
 				}
@@ -397,7 +397,7 @@ describe('Mapping', {
 		for (var i = 0; i < atomicValues.length; i++) {
 			var result = ko.mapping.fromJS(atomicValues[i], {
 				created: {
-					"root": function (item) {
+					"": function (item) {
 						callbacksReceived++;
 						return item;
 					}
@@ -450,18 +450,18 @@ describe('Mapping', {
 		};
 		var result = ko.mapping.fromJS(obj, {
 			created: {
-				"root": pushParent,
+				"": pushParent,
 				"a": pushParent,
-				"a1": pushParent,
-				"a2": pushParent,
-				"a3": pushParent,
-				"a31": pushParent
+				"a.a1": pushParent,
+				"a.a2": pushParent,
+				"a.a3": pushParent,
+				"a.a3.a31": pushParent
 			}
 		});
 		value_of(parents.length).should_be(3);
-		value_of(parents[0]).should_be("root");
+		value_of(parents[0]).should_be("");
 		value_of(parents[1]).should_be("a");
-		value_of(parents[2]).should_be("a3");
+		value_of(parents[2]).should_be("a.a3");
 	},
 
 	'ko.mapping.updateFromJS should create instead of update, on empty objects': function () {
@@ -616,12 +616,12 @@ describe('Mapping', {
 
 		var options = {
 			keys: {
-				"root": function (item) {
+				"": function (item) {
 					return item.id;
 				}
 			},
 			subscriptions: {
-				"root": function (event, item) {
+				"": function (event, item) {
 					if (event == "added") mappedItems.push(item);
 				}
 			}
@@ -659,7 +659,7 @@ describe('Mapping', {
 
 		var options = {
 			subscriptions: {
-				"root": function (event, item) {
+				"": function (event, item) {
 					if (event == "deleted") items.push(item);
 				}
 			}
