@@ -18,6 +18,8 @@ ko.exportProperty = function (owner, publicName, object) {
 
 (function () {
 	ko.mapping = {};
+	
+	var mappingProperty = "__ko_mapping__";
 
 	function getType(x) {
 		if ((x) && (typeof(x) === "object") && (x.constructor.toString().match(/date/i) !== null)) return "date";
@@ -36,7 +38,10 @@ ko.exportProperty = function (owner, publicName, object) {
 	ko.mapping.fromJS = function (jsObject, options) {
 		if (arguments.length == 0) throw new Error("When calling ko.fromJS, pass the object you want to convert.");
 
-		return updateViewModel(undefined, jsObject, fillOptions(options));
+		options = fillOptions(options);
+		var result = updateViewModel(undefined, jsObject, options);
+		result[mappingProperty] = options;
+		return result;
 	};
 
 	ko.mapping.fromJSON = function (jsonString, options) {
@@ -44,25 +49,29 @@ ko.exportProperty = function (owner, publicName, object) {
 		return ko.mapping.fromJS(parsed, options);
 	};
 
-	ko.mapping.updateFromJS = function (viewModel, jsObject, options) {
+	ko.mapping.updateFromJS = function (viewModel, jsObject) {
 		if (arguments.length < 2) throw new Error("When calling ko.updateFromJS, pass: the object to update and the object you want to update from.");
+		var options = viewModel[mappingProperty];
+		if (!options) throw new Error("The object you are trying to update was not created by a 'fromJS' or 'fromJSON' mapping!");
 
-		return updateViewModel(viewModel, jsObject, fillOptions(options));
+		return updateViewModel(viewModel, jsObject, options);
 	};
+	
+	function generateName(parentName, indexer) {
+		if (!parentName) {
+			return indexer;
+		} else {
+			return parentName + "." + indexer;
+		}
+	}
 
 	function updateViewModel(mappedRootObject, rootObject, options, visitedObjects, parentName) {
 		var isArray = ko.utils.unwrapObservable(rootObject) instanceof Array;
-
-		var createMappedObject = function (object, parentName) {
-			// Map the new item and map all of its child properties.
-			var mapped = updateViewModel(undefined, object, options, visitedObjects, parentName);
-			return mapped;
-		}
 		
 		visitedObjects = visitedObjects || new objectLookup();
 		if (visitedObjects.get(rootObject)) return mappedRootObject;
 
-		parentName = parentName || "root";
+		parentName = parentName || "";
 
 		// When using the 'created' callback, the result is used as a model for the mapped root object (which is by this point still not observable)
 		if ((options.created[parentName]) && (canHaveProperties(rootObject) && (!isArray))) {
@@ -95,25 +104,30 @@ ko.exportProperty = function (owner, publicName, object) {
 				// For non-atomic types, visit all properties and update recursively
 				visitPropertiesOrArrayEntries(rootObject, function (indexer) {
 					if (!ko.isObservable(mappedRootObject[indexer])) {
-						mappedRootObject[indexer] = undefined;
+						// In case we are adding a new property, fill it with the previously mapped rootObject's property value as a placeholder,
+						// to prevent recursion.
+						mappedRootObject[indexer] = visitedObjects.get(rootObject[indexer]);
 					}
-					mappedRootObject[indexer] = updateViewModel(mappedRootObject[indexer], rootObject[indexer], options, visitedObjects, indexer);
+					mappedRootObject[indexer] = updateViewModel(mappedRootObject[indexer], rootObject[indexer], options, visitedObjects, generateName(parentName, indexer));
 				});
 			}
 		} else {
 			if (!ko.isObservable(mappedRootObject)) {
 				mappedRootObject = ko.observableArray([]);
-				subscribeToArray(mappedRootObject, options, parentName);
 			}
 
 			var keyCallback = function (x) {
 				return x;
 			}
 			if (options.keys[parentName]) keyCallback = options.keys[parentName];
+			
+			var subscriptions = getArraySubscriptions(options, parentName);
+			var changes = [];
+			
 			compareArrays(ko.utils.unwrapObservable(mappedRootObject), rootObject, parentName, keyCallback, function (event, item) {
 				switch (event) {
 				case "added":
-					var mappedItem = ko.utils.unwrapObservable(createMappedObject(item, parentName));
+					var mappedItem = ko.utils.unwrapObservable(updateViewModel(undefined, item, options, visitedObjects, parentName));
 					mappedRootObject.push(mappedItem);
 					break;
 				case "retained":
@@ -125,7 +139,19 @@ ko.exportProperty = function (owner, publicName, object) {
 					mappedRootObject.remove(mappedItem);
 					break;
 				}
+				
+				changes.push({
+					event: event,
+					item: mappedItem
+				});
 			});
+			
+			ko.utils.arrayForEach(subscriptions, function (subscriptionCallback) {
+				ko.utils.arrayForEach(changes, function(change) {
+					subscriptionCallback(change.event, change.item);
+				});
+			});
+			
 		}
 
 		return mappedRootObject;
@@ -150,8 +176,11 @@ ko.exportProperty = function (owner, publicName, object) {
 
 	function filterArrayByKey(array, callback) {
 		return ko.utils.arrayMap(ko.utils.unwrapObservable(array), function (item) {
-			if (callback) return mapKey(item, callback);
-			else return item;
+			if (callback) {
+				return mapKey(item, callback);
+			} else {
+				return item;
+			}
 		});
 	}
 
@@ -194,44 +223,18 @@ ko.exportProperty = function (owner, publicName, object) {
 		}
 	};
 
-	function convertAtomicValueToObservable(valueToMap, isArrayMember, options, parentName) {
-		valueToMap = ko.utils.unwrapObservable(valueToMap); // Don't add an extra layer of observability
-		// Don't map direct array members (although we will map any child properties they may have)
-		if (isArrayMember) return valueToMap;
-
-		// Convert arrays to observableArrays
-		if (valueToMap instanceof Array) {
-			var array = ko.observableArray([]);
-			subscribeToArray(array, options, parentName);
-			return array;
-		}
-
-		// Map non-atomic values as non-observable objects
-		if ((getType(valueToMap) == "object") && (valueToMap !== null)) {
-			return valueToMap;
-		}
-
-		// Map atomic values (other than array members) as observables
-		return ko.observable(valueToMap);
-	}
-
 	function canHaveProperties(object) {
 		return (getType(object) == "object") && (object !== null) && (object !== undefined);
 	}
-
-	function subscribeToArray(mappedRootObject, options, parentName) {
+	
+	function getArraySubscriptions(options, parentName) {
 		var subscriptions = options.subscriptions[parentName];
 		var prevArray = [];
 		if (subscriptions) {
 			if (!(subscriptions instanceof Array)) subscriptions = [subscriptions];
-			mappedRootObject.subscribe(function (currentArray) {
-				compareArrays(prevArray, currentArray, parentName, options.keys[parentName], function (event, item) {
-					ko.utils.arrayForEach(subscriptions, function (subscriptionCallback) {
-						subscriptionCallback(event, item);
-					});
-				});
-				prevArray = currentArray.slice(0);
-			});
+			return subscriptions;
+		} else {
+			return [];
 		}
 	}
 
