@@ -246,6 +246,49 @@ describe('Mapping', {
 		});
 		value_of(index).should_be(1);
 	},
+	
+	'ko.mapping.fromJS should send parent along to create callback when creating an object': function() {
+		var obj = {
+			a: "a",
+			b: {
+				b1: "b1"
+			}
+		};
+		
+		var result = ko.mapping.fromJS(obj, {
+			create: {
+				"child": function(model, parent) {
+					value_of(ko.isObservable(parent.a)).should_be(true);
+					value_of(parent.a()).should_be("a");
+					return model;
+				}
+			}
+		});
+	},
+
+	'ko.mapping.fromJS should send parent along to create callback when creating an array item': function() {
+		var obj = {
+			a: "a",
+			b: [
+				{ id: 1 },
+				{ id: 2 },
+			]
+		};
+		
+		var numCreated = 0;
+		var result = ko.mapping.fromJS(obj, {
+			create: {
+				"b": function(model, parent) {
+					value_of(ko.isObservable(parent.a)).should_be(true);
+					value_of(parent.a()).should_be("a");
+					numCreated++;
+					return model;
+				}
+			}
+		});
+		
+		value_of(numCreated).should_be(2);
+	},
 
 	'ko.mapping.updateFromJS should not overwrite objects in arrays that were specified in the overriden model in the create callback': function () {
 		var options = {
@@ -582,8 +625,8 @@ describe('Mapping', {
 			}
 		};
 		var parents = [];
-		var pushParent = function (item, parent) {
-			parents.push(parent);
+		var pushParent = function (item, parent, parentName) {
+			parents.push(parentName);
 			return item;
 		};
 		var result = ko.mapping.fromJS(obj, {
@@ -611,9 +654,9 @@ describe('Mapping', {
 			}
 		};
 		var parents = [];
-		var pushParent = function (item, parent) {
-			parents.push(parent);
-			//return item;
+		var pushParent = function (item, parent, parentName) {
+			parents.push(parentName);
+			//return item; // explicitly NOT construct the object
 		};
 		var result = ko.mapping.fromJS(obj, {
 			create: {

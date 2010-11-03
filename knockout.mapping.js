@@ -62,7 +62,7 @@ ko.exportProperty = function (owner, publicName, object) {
 		}
 	}
 
-	function updateViewModel(mappedRootObject, rootObject, options, visitedObjects, parentName) {
+	function updateViewModel(mappedRootObject, rootObject, options, visitedObjects, parentName, parent) {
 		var isArray = ko.utils.unwrapObservable(rootObject) instanceof Array;
 		
 		var createCallback = function(defaultObject) {
@@ -70,7 +70,7 @@ ko.exportProperty = function (owner, publicName, object) {
 			var createdMappedObject;
 			if ((options.create[parentName]) && (canHaveProperties(rootObject) && (!isArray))) {
 				var _options = fillOptions();
-				createdMappedObject = options.create[parentName](rootObject, parentName);
+				createdMappedObject = options.create[parentName](rootObject, parent, parentName);
 			}
 			
 			return createdMappedObject || defaultObject;
@@ -126,7 +126,7 @@ ko.exportProperty = function (owner, publicName, object) {
 							// In case we are adding an already mapped property, fill it with the previously mapped property value to prevent recursion.
 							mappedRootObject[indexer] = prevMappedProperty;
 						} else {
-							mappedRootObject[indexer] = updateViewModel(mappedRootObject[indexer], rootObject[indexer], options, visitedObjects, generateName(parentName, indexer));
+							mappedRootObject[indexer] = updateViewModel(mappedRootObject[indexer], rootObject[indexer], options, visitedObjects, generateName(parentName, indexer), mappedRootObject);
 						}
 					
 					}
@@ -149,12 +149,12 @@ ko.exportProperty = function (owner, publicName, object) {
 			compareArrays(ko.utils.unwrapObservable(mappedRootObject), rootObject, parentName, keyCallback, function (event, item) {
 				switch (event) {
 				case "added":
-					var mappedItem = ko.utils.unwrapObservable(updateViewModel(undefined, item, options, visitedObjects, parentName));
+					var mappedItem = ko.utils.unwrapObservable(updateViewModel(undefined, item, options, visitedObjects, parentName, parent));
 					mappedRootObject.push(mappedItem);
 					break;
 				case "retained":
 					var mappedItem = getItemByKey(mappedRootObject, mapKey(item, keyCallback), keyCallback);
-					updateViewModel(mappedItem, item, options, visitedObjects);
+					updateViewModel(mappedItem, item, options, visitedObjects, parentName, parent);
 					break;
 				case "deleted":
 					var mappedItem = getItemByKey(mappedRootObject, mapKey(item, keyCallback), keyCallback);
