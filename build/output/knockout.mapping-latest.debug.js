@@ -101,8 +101,6 @@ ko.exportProperty = function (owner, publicName, object) {
 						}
 						break;
 				}
-
-				visitedObjects.save(rootObject, mappedRootObject);
 				
 			} else {
 
