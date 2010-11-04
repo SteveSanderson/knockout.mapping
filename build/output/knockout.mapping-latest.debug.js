@@ -3,7 +3,9 @@
 // License: Ms-Pl (http://www.opensource.org/licenses/ms-pl.html)
 
 // Knockout Mapping plugin v0.5
+// (c) 2010 Steven Sanderson, Roy Jacobs - http://knockoutjs.com/
 // License: Ms-Pl (http://www.opensource.org/licenses/ms-pl.html)
+
 // Google Closure Compiler helpers (used only to make the minified file smaller)
 ko.exportSymbol = function (publicPath, object) {
 	var tokens = publicPath.split(".");
@@ -18,28 +20,17 @@ ko.exportProperty = function (owner, publicName, object) {
 
 (function () {
 	ko.mapping = {};
-	
+
 	var mappingProperty = "__ko_mapping__";
+	var recursionDepth = 0;
+	var dependencyTriggers;
+	var realKoDependentObservable;
 
-	function getType(x) {
-		if ((x) && (typeof(x) === "object") && (x.constructor == (new Date).constructor)) return "date";
-		return typeof x;
-	}
-	
-	function fillOptions(options) {
-		options = options || {};
-		options.create = options.create;
-		options.key = options.key || function(x) {};
-		options.arrayChanged = options.arrayChanged;
-		return options;
-	}
-
-	// Clones the supplied object graph, making certain things observable as per comments
 	ko.mapping.fromJS = function (jsObject, options) {
 		if (arguments.length == 0) throw new Error("When calling ko.fromJS, pass the object you want to convert.");
 
 		options = fillOptions(options);
-		var result = updateViewModel(undefined, jsObject, options);
+		var result = performMapping(undefined, jsObject, options);
 		result[mappingProperty] = result[mappingProperty] || {};
 		result[mappingProperty] = options;
 		return result;
@@ -55,70 +46,166 @@ ko.exportProperty = function (owner, publicName, object) {
 		var options = viewModel[mappingProperty];
 		if (!options) throw new Error("The object you are trying to update was not created by a 'fromJS' or 'fromJSON' mapping!");
 
-		return updateViewModel(viewModel, jsObject, options);
+		return performMapping(viewModel, jsObject, options);
 	};
 	
-	function generateName(parentName, indexer) {
-		if (!parentName) {
-			return indexer;
-		} else {
-			return parentName + "." + indexer;
+	ko.mapping.updateFromJSON = function (viewModel, jsonString, options) {
+		var parsed = ko.utils.parseJson(jsonString);
+		return ko.mapping.updateFromJS(viewModel, parsed, options);
+	};
+	
+	ko.mapping.toJS = function (rootObject) {
+		if (arguments.length == 0) throw new Error("When calling ko.mapping.toJS, pass the object you want to convert.");
+
+		// We just unwrap everything at every level in the object graph
+		return visitModel(rootObject, function (x) {
+			return ko.utils.unwrapObservable(x);
+		});
+	};
+
+	ko.mapping.toJSON = function (rootObject) {
+		var plainJavaScriptObject = ko.mapping.toJS(rootObject);
+		return ko.utils.stringifyJson(plainJavaScriptObject);
+	};
+
+	function getType(x) {
+		if ((x) && (typeof(x) === "object") && (x.constructor == (new Date).constructor)) return "date";
+		return typeof x;
+	}
+
+	function fillOptions(options) {
+		options = options || {};
+		options.create = options.create;
+
+		if (options.create instanceof Function) options.create = {
+			"": options.create
+		};
+		options.key = options.key ||
+		function (x) {};
+		options.arrayChanged = options.arrayChanged;
+		return options;
+	}
+
+	var proxyDependentObservable = function () {
+		// We need to proxy all calls to dependentObservable, since it will evaluate immediately.
+		// Possibly it refers to properties that are not mapped yet!
+		//
+		// We wrap the dependentObservable in another dependent observable.
+		// This wrapper will ignore the first call that is always done to immediately evaluate the dependent observables to determine the dependencies.
+		//
+		// Instead, we have only one dependency: dependencyTrigger.
+		//
+		// This dependencyTrigger will be set to true when the entire object is mapped, causing the 'real' dependencyObject to be constructed.
+		// All subsequent calls will go straight through this wrapper to the real dependencyObject.
+		realKoDependentObservable = ko.dependentObservable;
+
+		ko.dependentObservable = function () {
+			var args = arguments;
+			var dependentObservable;
+
+			var item = {
+				trigger: ko.observable(false)
+			};
+
+			var proxy = new realKoDependentObservable(function () {
+				if (!item.trigger()) {
+					return;
+				}
+
+				if (!dependentObservable) {
+					dependentObservable = realKoDependentObservable.apply(this, args);
+					item.dependentObservable = dependentObservable;
+				}
+				return dependentObservable();
+			});
+
+			item.proxy = proxy;
+			dependencyTriggers.push(item);
+			return proxy;
 		}
 	}
 
-	function updateViewModel(mappedRootObject, rootObject, options, visitedObjects, parentName, parent) {
-		var isArray = ko.utils.unwrapObservable(rootObject) instanceof Array;
-		
-		var createCallback = function(defaultObject) {
-			// When using the 'create' callback, the result is used as a model for the mapped root object
-			var createdMappedObject;
-			if (canHaveProperties(rootObject) && (!isArray)) {
-				var _options = fillOptions();
-				createdMappedObject = options.create(rootObject, parent, parentName);
+	var unproxyDependentObservable = function () {
+		ko.dependentObservable = realKoDependentObservable;
+	}
+
+	function performMapping(mappedRootObject, rootObject, options) {
+		if (!recursionDepth) {
+			dependencyTriggers = [];
+			proxyDependentObservable();
+		}
+
+		recursionDepth++;
+		var result = updateViewModel(mappedRootObject, rootObject, options);
+		recursionDepth--;
+
+		if (!recursionDepth) {
+			unproxyDependentObservable();
+			if (dependencyTriggers.length) {
+				// Now, replace all the proxy dependent observables with the real ones
+				visitModel(result, function (item) {
+					var foundTrigger = ko.utils.arrayFirst(dependencyTriggers, function (triggerItem) {
+						return (triggerItem.proxy == item);
+					}, this);
+
+					if (foundTrigger) {
+						foundTrigger.trigger(true);
+						return foundTrigger.dependentObservable;
+					} else {
+						return item;
+					}
+				});
 			}
-			
-			return createdMappedObject || defaultObject;
 		}
 		
+		return result;
+	}
+	
+	function updateViewModel(mappedRootObject, rootObject, options, visitedObjects, parentName, parent) {
+		var isArray = ko.utils.unwrapObservable(rootObject) instanceof Array;
+
+		var hasCreateCallback = function () {
+			return options.create && options.create[parentName] instanceof Function;
+		}
+
 		visitedObjects = visitedObjects || new objectLookup();
 		if (visitedObjects.get(rootObject)) return mappedRootObject;
 
 		parentName = parentName || "";
-		
+
 		if (!isArray) {
 
 			// For atomic types, do a direct update on the observable
 			if (!canHaveProperties(rootObject)) {
 				switch (getType(rootObject)) {
-					case "function":
-						mappedRootObject = rootObject;
-						break;
-					default:
-						if (ko.isWriteableObservable(mappedRootObject)) {
-							mappedRootObject(ko.utils.unwrapObservable(rootObject));
-						} else {
-							mappedRootObject = ko.observable(ko.utils.unwrapObservable(rootObject));
-						}
-						break;
+				case "function":
+					mappedRootObject = rootObject;
+					break;
+				default:
+					if (ko.isWriteableObservable(mappedRootObject)) {
+						mappedRootObject(ko.utils.unwrapObservable(rootObject));
+					} else {
+						mappedRootObject = ko.observable(ko.utils.unwrapObservable(rootObject));
+					}
+					break;
 				}
-				
+
 			} else {
 
-				// If a create callback returns a valid object, let's assume the user wants to map it themselves
-				if ((options.create)&&(!mappedRootObject)) {
-					mappedRootObject = createCallback();
-					if (mappedRootObject) return mappedRootObject;
+				if (!mappedRootObject) {
+					if (hasCreateCallback()) {
+						return options.create[parentName](rootObject, parent);
+					} else {
+						mappedRootObject = {};
+					}
 				}
 
-				if (!mappedRootObject) {
-					mappedRootObject = {};
-				}
 				visitedObjects.save(rootObject, mappedRootObject);
 
 				// For non-atomic types, visit all properties and update recursively
 				visitPropertiesOrArrayEntries(rootObject, function (indexer) {
 					var mappedProperty;
-					
+
 					var prevMappedProperty = visitedObjects.get(rootObject[indexer]);
 					if (prevMappedProperty) {
 						// In case we are adding an already mapped property, fill it with the previously mapped property value to prevent recursion.
@@ -134,7 +221,7 @@ ko.exportProperty = function (owner, publicName, object) {
 			}
 
 			var changes = [];
-			
+
 			compareArrays(ko.utils.unwrapObservable(mappedRootObject), rootObject, parentName, options.key, function (event, item) {
 				switch (event) {
 				case "added":
@@ -150,15 +237,15 @@ ko.exportProperty = function (owner, publicName, object) {
 					mappedRootObject.remove(mappedItem);
 					break;
 				}
-				
+
 				changes.push({
 					event: event,
 					item: mappedItem
 				});
 			});
-			
+
 			if (options.arrayChanged) {
-				ko.utils.arrayForEach(changes, function(change) {
+				ko.utils.arrayForEach(changes, function (change) {
 					options.arrayChanged(change.event, change.item, parentName);
 				});
 			}
@@ -167,6 +254,14 @@ ko.exportProperty = function (owner, publicName, object) {
 		return mappedRootObject;
 	}
 
+	function generateName(parentName, indexer) {
+		if (!parentName) {
+			return indexer;
+		} else {
+			return parentName + "." + indexer;
+		}
+	}
+	
 	function mapKey(item, parentName, callback) {
 		var mappedItem;
 		if (callback) mappedItem = callback(item, parentName);
@@ -219,11 +314,6 @@ ko.exportProperty = function (owner, publicName, object) {
 		}
 	}
 
-	ko.mapping.updateFromJSON = function (viewModel, jsonString, options) {
-		var parsed = ko.utils.parseJson(jsonString);
-		return ko.mapping.updateFromJS(viewModel, parsed, options);
-	};
-
 	function visitPropertiesOrArrayEntries(rootObject, visitorCallback) {
 		if (rootObject instanceof Array) {
 			for (var i = 0; i < rootObject.length; i++)
@@ -237,31 +327,30 @@ ko.exportProperty = function (owner, publicName, object) {
 	function canHaveProperties(object) {
 		return (getType(object) == "object") && (object !== null) && (object !== undefined);
 	}
-	
-	function unwrapModel(rootObject, visitedObjects) {
+
+	function visitModel(rootObject, callback, visitedObjects) {
 		visitedObjects = visitedObjects || new objectLookup();
 
-		rootObject = ko.utils.unwrapObservable(rootObject);
-		if (!canHaveProperties(rootObject)) {
+		rootObject = callback(rootObject);
+		var unwrappedRootObject = ko.utils.unwrapObservable(rootObject);
+		if (!canHaveProperties(unwrappedRootObject)) {
 			return rootObject;
 		}
 
-		var rootObjectIsArray = rootObject instanceof Array;
-
 		visitedObjects.save(rootObject, rootObject);
 
-		visitPropertiesOrArrayEntries(rootObject, function (indexer) {
-			var propertyValue = ko.utils.unwrapObservable(rootObject[indexer]);
+		visitPropertiesOrArrayEntries(unwrappedRootObject, function (indexer) {
+			var propertyValue = unwrappedRootObject[indexer];
 
 			var outputProperty;
-			switch (getType(propertyValue)) {
+			switch (getType(ko.utils.unwrapObservable(propertyValue))) {
 			case "object":
 			case "undefined":
 				var previouslyMappedValue = visitedObjects.get(propertyValue);
-				rootObject[indexer] = (previouslyMappedValue !== undefined) ? previouslyMappedValue : unwrapModel(propertyValue, visitedObjects);
+				unwrappedRootObject[indexer] = (previouslyMappedValue !== undefined) ? previouslyMappedValue : visitModel(propertyValue, callback, visitedObjects);
 				break;
 			default:
-				rootObject[indexer] = ko.utils.unwrapObservable(propertyValue);
+				unwrappedRootObject[indexer] = callback(propertyValue);
 			}
 		});
 
@@ -283,18 +372,6 @@ ko.exportProperty = function (owner, publicName, object) {
 			var existingIndex = ko.utils.arrayIndexOf(keys, key);
 			return (existingIndex >= 0) ? values[existingIndex] : undefined;
 		};
-	};
-
-	ko.mapping.toJS = function (rootObject) {
-		if (arguments.length == 0) throw new Error("When calling ko.mapping.toJS, pass the object you want to convert.");
-
-		// We just unwrap everything at every level in the object graph
-		return unwrapModel(rootObject);
-	};
-
-	ko.mapping.toJSON = function (rootObject) {
-		var plainJavaScriptObject = ko.mapping.toJS(rootObject);
-		return ko.utils.stringifyJson(plainJavaScriptObject);
 	};
 
 	ko.exportSymbol('ko.mapping', ko.mapping);

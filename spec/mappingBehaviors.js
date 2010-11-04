@@ -167,7 +167,7 @@ describe('Mapping', {
 		value_of(result.a.a2).should_be(undefined);
 		value_of(result.a.a1).should_be('a1');
 	},
-
+	
 	'ko.mapping.fromJS should not map top-level objects on the supplied overriden model as observables': function () {
 		var dummyObject = function (options) {
 			this.a1 = options.a1;
@@ -225,6 +225,73 @@ describe('Mapping', {
 		value_of(result.someProp.owner === result).should_be(true);
 	},
 
+	'ko.mapping.fromJS should handle interdependent dependent observables in objects': function() {
+		var obj = {
+			a: { a1: "a1" },
+			b: { b1: "b1" }
+		}
+		
+		var dependencyInvocations = [];
+		
+		var result = ko.mapping.fromJS(obj, {
+			create: {
+				"a": function(data, parent) {
+					return {
+						a1: ko.observable(data.a1),
+						observeB: ko.dependentObservable(function() {
+							dependencyInvocations.push("a");
+							return parent.b.b1();
+						})
+					}
+				},
+				"b": function(data, parent) {
+					return {
+						b1: ko.observable(data.b1),
+						observeA: ko.dependentObservable(function() {
+							dependencyInvocations.push("b");
+							return parent.a.a1();
+						})
+					}
+				},
+			}
+		});
+		
+		value_of(dependencyInvocations.length).should_be(2);
+		value_of(dependencyInvocations).should_include("a");
+		value_of(dependencyInvocations).should_include("b");
+		value_of(result.a.observeB()).should_be("b1");
+		value_of(result.b.observeA()).should_be("a1");
+	},
+
+	'ko.mapping.fromJS should handle dependent observables in arrays': function() {
+		var obj = {
+			items: [
+				{ id: "a" },
+				{ id: "b" }
+			]
+		}
+		
+		var dependencyInvocations = 0;
+		
+		var result = ko.mapping.fromJS(obj, {
+			create: {
+				"items": function(data, parent) {
+					return {
+						id: ko.observable(data.id),
+						observeParent: ko.dependentObservable(function() {
+							dependencyInvocations++;
+							return parent.items().length;
+						})
+					}
+				}
+			}
+		});
+		
+		value_of(dependencyInvocations).should_be(2);
+		value_of(result.items()[0].observeParent()).should_be(2);
+		value_of(result.items()[1].observeParent()).should_be(2);
+	},
+
 	'ko.mapping.fromJS should send relevant create callbacks': function () {
 		var items = [];
 		var index = 0;
@@ -248,8 +315,8 @@ describe('Mapping', {
 		};
 		
 		var result = ko.mapping.fromJS(obj, {
-			create: function(model, parent, parentName) {
-				if (parentName == "b1") {
+			create: {
+				"b1": function(model, parent) {
 					value_of(ko.isObservable(parent.a)).should_be(true);
 					value_of(parent.a()).should_be("a");
 				}
@@ -268,8 +335,8 @@ describe('Mapping', {
 		
 		var numCreated = 0;
 		var result = ko.mapping.fromJS(obj, {
-			create: function(model, parent, parentName) {
-				if (parentName == "b") {
+			create: {
+				"b": function(model, parent) {
 					value_of(ko.isObservable(parent.a)).should_be(true);
 					value_of(parent.a()).should_be("a");
 					numCreated++;
@@ -310,7 +377,7 @@ describe('Mapping', {
 				created.push(data.id);
 				return ko.mapping.fromJS(data);
 			},
-			arrayChanged: function(event, item, parentName) {
+			arrayChanged: function(event, item) {
 				arrayEvents++;
 			}
 		}
@@ -565,39 +632,15 @@ describe('Mapping', {
 			}
 		};
 		var parents = [];
-		var pushParent = function (item, parent, parentName) {
-			parents.push(parentName);
+		var pushParent = function (item, parent) {
+			parents.push(parent);
 			return item;
 		};
 		var result = ko.mapping.fromJS(obj, {
 			create: pushParent
 		});
 		value_of(parents.length).should_be(1);
-		value_of(parents[0]).should_be("");
-	},
-
-	'ko.mapping.fromJS should send callbacks containing parent names when descendant objects are not constructed': function () {
-		var obj = {
-			a: {
-				a1: "hello",
-				a2: 234,
-				a3: {
-					a31: null
-				}
-			}
-		};
-		var parents = [];
-		var pushParent = function (item, parent, parentName) {
-			parents.push(parentName);
-			//return item; // explicitly NOT construct the object
-		};
-		var result = ko.mapping.fromJS(obj, {
-			create: pushParent
-		});
-		value_of(parents.length).should_be(3);
-		value_of(parents[0]).should_be("");
-		value_of(parents[1]).should_be("a");
-		value_of(parents[2]).should_be("a.a3");
+		value_of(parents[0]).should_be(undefined);
 	},
 
 	'ko.mapping.updateFromJS should create instead of update, on empty objects': function () {
