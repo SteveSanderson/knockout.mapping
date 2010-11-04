@@ -26,11 +26,11 @@ ko.exportProperty = function (owner, publicName, object) {
 	var dependencyTriggers;
 	var realKoDependentObservable;
 
-	ko.mapping.fromJS = function (jsObject, options) {
+	ko.mapping.fromJS = function (jsObject, options, target) {
 		if (arguments.length == 0) throw new Error("When calling ko.fromJS, pass the object you want to convert.");
 
 		options = fillOptions(options);
-		var result = performMapping(undefined, jsObject, options);
+		var result = performMapping(target, jsObject, options);
 		result[mappingProperty] = result[mappingProperty] || {};
 		result[mappingProperty] = options;
 		return result;
@@ -75,14 +75,18 @@ ko.exportProperty = function (owner, publicName, object) {
 
 	function fillOptions(options) {
 		options = options || {};
-		options.create = options.create;
 
-		if (options.create instanceof Function) options.create = {
-			"": options.create
-		};
-		options.key = options.key ||
-		function (x) {};
-		options.arrayChanged = options.arrayChanged;
+		// Is there only a root-level mapping present?
+		if (
+			(options.create instanceof Function) ||
+			(options.key instanceof Function) ||
+			(options.arrayChanged instanceof Function)
+		   ) {
+			options = {
+				"": options
+			};
+		}
+		
 		return options;
 	}
 
@@ -165,7 +169,7 @@ ko.exportProperty = function (owner, publicName, object) {
 		var isArray = ko.utils.unwrapObservable(rootObject) instanceof Array;
 
 		var hasCreateCallback = function () {
-			return options.create && options.create[parentName] instanceof Function;
+			return options[parentName] && options[parentName].create instanceof Function;
 		}
 
 		visitedObjects = visitedObjects || new objectLookup();
@@ -194,7 +198,7 @@ ko.exportProperty = function (owner, publicName, object) {
 
 				if (!mappedRootObject) {
 					if (hasCreateCallback()) {
-						return options.create[parentName](rootObject, parent);
+						return options[parentName].create(rootObject, parent);
 					} else {
 						mappedRootObject = {};
 					}
@@ -222,18 +226,23 @@ ko.exportProperty = function (owner, publicName, object) {
 
 			var changes = [];
 
-			compareArrays(ko.utils.unwrapObservable(mappedRootObject), rootObject, parentName, options.key, function (event, item) {
+			var keyCallback = function(x) { return x; }
+			if (options[parentName] && options[parentName].key) {
+				keyCallback = options[parentName].key;
+			}
+			
+			compareArrays(ko.utils.unwrapObservable(mappedRootObject), rootObject, keyCallback, function (event, item) {
 				switch (event) {
 				case "added":
 					var mappedItem = ko.utils.unwrapObservable(updateViewModel(undefined, item, options, visitedObjects, parentName, parent));
 					mappedRootObject.push(mappedItem);
 					break;
 				case "retained":
-					var mappedItem = getItemByKey(mappedRootObject, mapKey(item, parentName, options.key), parentName, options.key);
+					var mappedItem = getItemByKey(mappedRootObject, mapKey(item, keyCallback), keyCallback);
 					updateViewModel(mappedItem, item, options, visitedObjects, parentName, parent);
 					break;
 				case "deleted":
-					var mappedItem = getItemByKey(mappedRootObject, mapKey(item, parentName, options.key), parentName, options.key);
+					var mappedItem = getItemByKey(mappedRootObject, mapKey(item, keyCallback), keyCallback);
 					mappedRootObject.remove(mappedItem);
 					break;
 				}
@@ -244,9 +253,9 @@ ko.exportProperty = function (owner, publicName, object) {
 				});
 			});
 
-			if (options.arrayChanged) {
+			if (options[parentName] && options[parentName].arrayChanged) {
 				ko.utils.arrayForEach(changes, function (change) {
-					options.arrayChanged(change.event, change.item, parentName);
+					options[parentName].arrayChanged(change.event, change.item);
 				});
 			}
 		}
@@ -262,17 +271,17 @@ ko.exportProperty = function (owner, publicName, object) {
 		}
 	}
 	
-	function mapKey(item, parentName, callback) {
+	function mapKey(item, callback) {
 		var mappedItem;
-		if (callback) mappedItem = callback(item, parentName);
+		if (callback) mappedItem = callback(item);
 		if (!mappedItem) mappedItem = item;
 
 		return ko.utils.unwrapObservable(mappedItem);
 	}
 
-	function getItemByKey(array, key, parentName, callback) {
+	function getItemByKey(array, key, callback) {
 		var filtered = ko.utils.arrayFilter(ko.utils.unwrapObservable(array), function (item) {
-			return mapKey(item, parentName, callback) == key;
+			return mapKey(item, callback) == key;
 		});
 
 		if (filtered.length != 1) throw new Error("When calling ko.update*, the key '" + key + "' was not found or not unique!");
@@ -280,34 +289,34 @@ ko.exportProperty = function (owner, publicName, object) {
 		return filtered[0];
 	}
 
-	function filterArrayByKey(array, parentName, callback) {
+	function filterArrayByKey(array, callback) {
 		return ko.utils.arrayMap(ko.utils.unwrapObservable(array), function (item) {
 			if (callback) {
-				return mapKey(item, parentName, callback);
+				return mapKey(item, callback);
 			} else {
 				return item;
 			}
 		});
 	}
 
-	function compareArrays(prevArray, currentArray, parentName, mapKeyCallback, callback, callbackTarget) {
-		var currentArrayKeys = filterArrayByKey(currentArray, parentName, mapKeyCallback);
-		var prevArrayKeys = filterArrayByKey(prevArray, parentName, mapKeyCallback);
+	function compareArrays(prevArray, currentArray, mapKeyCallback, callback, callbackTarget) {
+		var currentArrayKeys = filterArrayByKey(currentArray, mapKeyCallback);
+		var prevArrayKeys = filterArrayByKey(prevArray, mapKeyCallback);
 		var editScript = ko.utils.compareArrays(prevArrayKeys, currentArrayKeys);
 
 		for (var i = 0, j = editScript.length; i < j; i++) {
 			var key = editScript[i];
 			switch (key.status) {
 			case "added":
-				var item = getItemByKey(ko.utils.unwrapObservable(currentArray), key.value, parentName, mapKeyCallback);
+				var item = getItemByKey(ko.utils.unwrapObservable(currentArray), key.value, mapKeyCallback);
 				callback("added", item);
 				break;
 			case "retained":
-				var item = getItemByKey(currentArray, key.value, parentName, mapKeyCallback);
+				var item = getItemByKey(currentArray, key.value, mapKeyCallback);
 				callback("retained", item);
 				break;
 			case "deleted":
-				var item = getItemByKey(ko.utils.unwrapObservable(prevArray), key.value, parentName, mapKeyCallback);
+				var item = getItemByKey(ko.utils.unwrapObservable(prevArray), key.value, mapKeyCallback);
 				callback("deleted", item);
 				break;
 			}

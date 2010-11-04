@@ -97,6 +97,23 @@ describe('Mapping', {
 		}
 	},
 
+	'ko.mapping.fromJS should be able to map into an existing object': function () {
+		var existingObj = {
+			a: "a"
+		};
+		
+		var obj = {
+			b: "b"
+		};
+		
+		ko.mapping.fromJS(obj, {}, existingObj);
+		
+		value_of(ko.isObservable(existingObj.a)).should_be(false);
+		value_of(ko.isObservable(existingObj.b)).should_be(true);
+		value_of(existingObj.a).should_be("a");
+		value_of(existingObj.b()).should_be("b");
+	},
+
 	'ko.mapping.fromJS should return an observableArray if you supply an array, but should not wrap its entries in further observables': function () {
 		var sampleArray = ["a", "b"];
 		var result = ko.mapping.fromJS(sampleArray);
@@ -234,8 +251,8 @@ describe('Mapping', {
 		var dependencyInvocations = [];
 		
 		var result = ko.mapping.fromJS(obj, {
-			create: {
-				"a": function(data, parent) {
+			a: {
+				create: function(data, parent) {
 					return {
 						a1: ko.observable(data.a1),
 						observeB: ko.dependentObservable(function() {
@@ -243,8 +260,10 @@ describe('Mapping', {
 							return parent.b.b1();
 						})
 					}
-				},
-				"b": function(data, parent) {
+				}
+			},
+			b: {
+				create: function(data, parent) {
 					return {
 						b1: ko.observable(data.b1),
 						observeA: ko.dependentObservable(function() {
@@ -274,8 +293,8 @@ describe('Mapping', {
 		var dependencyInvocations = 0;
 		
 		var result = ko.mapping.fromJS(obj, {
-			create: {
-				"items": function(data, parent) {
+			"items": {
+				create: function(data, parent) {
 					return {
 						id: ko.observable(data.id),
 						observeParent: ko.dependentObservable(function() {
@@ -315,8 +334,8 @@ describe('Mapping', {
 		};
 		
 		var result = ko.mapping.fromJS(obj, {
-			create: {
-				"b1": function(model, parent) {
+			"b1": {
+				create: function(model, parent) {
 					value_of(ko.isObservable(parent.a)).should_be(true);
 					value_of(parent.a()).should_be("a");
 				}
@@ -335,8 +354,8 @@ describe('Mapping', {
 		
 		var numCreated = 0;
 		var result = ko.mapping.fromJS(obj, {
-			create: {
-				"b": function(model, parent) {
+			"b": {
+				create: function(model, parent) {
 					value_of(ko.isObservable(parent.a)).should_be(true);
 					value_of(parent.a()).should_be("a");
 					numCreated++;
@@ -453,8 +472,10 @@ describe('Mapping', {
 		var added = [];
 
 		var options = {
-			arrayChanged: function (event, newValue, parentName) {
-				if (parentName == "a" && event === "added") added.push(newValue);
+			"a" : {
+				arrayChanged: function (event, newValue) {
+					if (event === "added") added.push(newValue);
+				}
 			}
 		};
 		var result = ko.mapping.fromJS({}, options);
@@ -470,8 +491,10 @@ describe('Mapping', {
 		var added = [];
 
 		var options = {
-			arrayChanged: function (event, newValue, parentName) {
-				if (parentName == "a" && event === "added") added.push(newValue);
+			"a": {
+				arrayChanged: function (event, newValue) {
+					if (event === "added") added.push(newValue);
+				}
 			}
 		};
 		var result = ko.mapping.fromJS({ a: [] }, options);
@@ -522,8 +545,10 @@ describe('Mapping', {
 		var added = [];
 
 		var options = {
-			arrayChanged: function (event, newValue, parentName) {
-				if (parentName == "a" && event === "added") added.push(newValue);
+			"a": {
+				arrayChanged: function (event, newValue) {
+					if (event === "added") added.push(newValue);
+				}
 			}
 		};
 		var result = ko.mapping.fromJS({
@@ -543,8 +568,10 @@ describe('Mapping', {
 		var result = ko.mapping.fromJS({
 			a: [1, 2]
 		}, {
-			arrayChanged: function (event, newValue, parentName) {
-				if (parentName == "a" && event === "added") added.push(newValue);
+			"a": {
+				arrayChanged: function (event, newValue) {
+					if (event === "added") added.push(newValue);
+				}
 			}
 		});
 		value_of(added.length).should_be(2);
@@ -612,9 +639,11 @@ describe('Mapping', {
 
 		var items = [];
 		var result = ko.mapping.fromJS(oldItems, {
-			arrayChanged: function (event, item, parentName) {
-				if (parentName == "array" && event == "added")
-					items.push(item);
+			"array": {
+				arrayChanged: function (event, item) {
+					if (event == "added")
+						items.push(item);
+				}
 			}
 		});
 		ko.mapping.updateFromJS(result, newItems);
@@ -754,8 +783,10 @@ describe('Mapping', {
 		}
 
 		var options = {
-			key: function (item, parentName) {
-				if (parentName == "a") return item.id;
+			"a": {
+				key: function (item) {
+					return item.id;
+				}
 			}
 		};
 		var result = ko.mapping.fromJS(obj, options);
