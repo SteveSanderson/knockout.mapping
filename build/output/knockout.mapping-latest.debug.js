@@ -109,8 +109,12 @@ ko.exportProperty = function (owner, publicName, object) {
 
 		if (!recursionDepth) {
 			// Now, evaluate all the proxied dependent observables
-			ko.utils.arrayForEach(deferredObservables, function (item) {
-				item.evaluate();
+			// TODO: Extract the generated subscriptions and parse them recursively, instead of just going over every item
+			visitModel(result, function (item) {
+				if (item && item.__ko_proto__ == realKoDependentObservable) {
+					item.evaluate();
+				}
+				return item;
 			});
 		}
 
