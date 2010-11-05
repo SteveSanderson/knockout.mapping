@@ -1,7 +1,3 @@
-// Knockout Mapping plugin v0.5
-// (c) 2010 Steven Sanderson, Roy Jacobs - http://knockoutjs.com/
-// License: Ms-Pl (http://www.opensource.org/licenses/ms-pl.html)
-
 // Google Closure Compiler helpers (used only to make the minified file smaller)
 ko.exportSymbol = function (publicPath, object) {
 	var tokens = publicPath.split(".");
@@ -19,8 +15,8 @@ ko.exportProperty = function (owner, publicName, object) {
 
 	var mappingProperty = "__ko_mapping__";
 	var recursionDepth = 0;
-	var dependencyTriggers;
-	var realKoDependentObservable;
+	var realKoDependentObservable = ko.dependentObservable;
+	var deferredObservables;
 
 	ko.mapping.fromJS = function (jsObject, options, target) {
 		if (arguments.length == 0) throw new Error("When calling ko.fromJS, pass the object you want to convert.");
@@ -44,12 +40,12 @@ ko.exportProperty = function (owner, publicName, object) {
 
 		return performMapping(viewModel, jsObject, options);
 	};
-	
+
 	ko.mapping.updateFromJSON = function (viewModel, jsonString, options) {
 		var parsed = ko.utils.parseJson(jsonString);
 		return ko.mapping.updateFromJS(viewModel, parsed, options);
 	};
-	
+
 	ko.mapping.toJS = function (rootObject) {
 		if (arguments.length == 0) throw new Error("When calling ko.mapping.toJS, pass the object you want to convert.");
 
@@ -73,55 +69,24 @@ ko.exportProperty = function (owner, publicName, object) {
 		options = options || {};
 
 		// Is there only a root-level mapping present?
-		if (
-			(options.create instanceof Function) ||
-			(options.key instanceof Function) ||
-			(options.arrayChanged instanceof Function)
-		   ) {
+		if ((options.create instanceof Function) || (options.key instanceof Function) || (options.arrayChanged instanceof Function)) {
 			options = {
 				"": options
 			};
 		}
-		
+
 		return options;
 	}
 
 	var proxyDependentObservable = function () {
-		// We need to proxy all calls to dependentObservable, since it will evaluate immediately.
-		// Possibly it refers to properties that are not mapped yet!
-		//
-		// We wrap the dependentObservable in another dependent observable.
-		// This wrapper will ignore the first call that is always done to immediately evaluate the dependent observables to determine the dependencies.
-		//
-		// Instead, we have only one dependency: dependencyTrigger.
-		//
-		// This dependencyTrigger will be set to true when the entire object is mapped, causing the 'real' dependencyObject to be constructed.
-		// All subsequent calls will go straight through this wrapper to the real dependencyObject.
-		realKoDependentObservable = ko.dependentObservable;
-
-		ko.dependentObservable = function () {
-			var args = arguments;
-			var dependentObservable;
-
-			var item = {
-				trigger: ko.observable(false)
-			};
-
-			var proxy = new realKoDependentObservable(function () {
-				if (!item.trigger()) {
-					return;
-				}
-
-				if (!dependentObservable) {
-					dependentObservable = realKoDependentObservable.apply(this, args);
-					item.dependentObservable = dependentObservable;
-				}
-				return dependentObservable();
-			});
-
-			item.proxy = proxy;
-			dependencyTriggers.push(item);
-			return proxy;
+		ko.dependentObservable = function() {
+			var options = arguments[2] || {};
+			options.deferEvaluation = true;
+			
+			var realDependentObservable = new realKoDependentObservable(arguments[0], arguments[1], options);
+			realDependentObservable.__ko_proto__ = realKoDependentObservable;
+			deferredObservables.push(realDependentObservable);
+			return realDependentObservable;
 		}
 	}
 
@@ -131,36 +96,23 @@ ko.exportProperty = function (owner, publicName, object) {
 
 	function performMapping(mappedRootObject, rootObject, options) {
 		if (!recursionDepth) {
-			dependencyTriggers = [];
-			proxyDependentObservable();
+			deferredObservables = [];
 		}
-
+		
 		recursionDepth++;
 		var result = updateViewModel(mappedRootObject, rootObject, options);
 		recursionDepth--;
 
 		if (!recursionDepth) {
-			unproxyDependentObservable();
-			if (dependencyTriggers.length) {
-				// Now, replace all the proxy dependent observables with the real ones
-				visitModel(result, function (item) {
-					var foundTrigger = ko.utils.arrayFirst(dependencyTriggers, function (triggerItem) {
-						return (triggerItem.proxy == item);
-					}, this);
-
-					if (foundTrigger) {
-						foundTrigger.trigger(true);
-						return foundTrigger.dependentObservable;
-					} else {
-						return item;
-					}
-				});
-			}
+			// Now, evaluate all the proxied dependent observables
+			ko.utils.arrayForEach(deferredObservables, function (item) {
+				item.evaluate();
+			});
 		}
-		
+
 		return result;
 	}
-	
+
 	function updateViewModel(mappedRootObject, rootObject, options, visitedObjects, parentName, parent) {
 		var isArray = ko.utils.unwrapObservable(rootObject) instanceof Array;
 
@@ -194,7 +146,10 @@ ko.exportProperty = function (owner, publicName, object) {
 
 				if (!mappedRootObject) {
 					if (hasCreateCallback()) {
-						return options[parentName].create(rootObject, parent);
+						proxyDependentObservable();
+						var result = options[parentName].create(rootObject, parent);
+						unproxyDependentObservable();
+						return result;
 					} else {
 						mappedRootObject = {};
 					}
@@ -222,11 +177,13 @@ ko.exportProperty = function (owner, publicName, object) {
 
 			var changes = [];
 
-			var keyCallback = function(x) { return x; }
+			var keyCallback = function (x) {
+				return x;
+			}
 			if (options[parentName] && options[parentName].key) {
 				keyCallback = options[parentName].key;
 			}
-			
+
 			compareArrays(ko.utils.unwrapObservable(mappedRootObject), rootObject, keyCallback, function (event, item) {
 				switch (event) {
 				case "added":
@@ -266,7 +223,7 @@ ko.exportProperty = function (owner, publicName, object) {
 			return parentName + "." + indexer;
 		}
 	}
-	
+
 	function mapKey(item, callback) {
 		var mappedItem;
 		if (callback) mappedItem = callback(item);
