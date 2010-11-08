@@ -38,7 +38,7 @@ describe('Mapping', {
 		value_of(result[1]).should_be(1);
 		value_of(result[2].someProp).should_be('Hey');
 	},
-	
+
 	'ko.mapping.toJS should ignore specified single property': function() {
 		var data = {
 			a: "a",
@@ -902,5 +902,34 @@ describe('Mapping', {
 		value_of(model()[0].func()).should_be(true);
 		value_of(model()[0].entries()[0].func()).should_be(true);
 		value_of(model()[0].entries()[0].entries()[0].func()).should_be(true);
+	},
+	
+	'ko.mapping.toJS should not change the mapped object': function() {
+		var obj = {
+			a: "a"
+		}
+		
+		var result = ko.mapping.fromJS(obj);
+		result.b = ko.observable(123);
+		var toJS = ko.mapping.toJS(result);
+		
+		value_of(ko.isObservable(result.b)).should_be(true);
+		value_of(result.b()).should_be(123);
+		value_of(ko.isObservable(toJS.b)).should_be(false);
+		value_of(toJS.b).should_be(123);
+	},
+	
+	'ko.mapping.toJS should not change the mapped array': function() {
+		var obj = [{
+			a: 50
+		}]
+		
+		var result = ko.mapping.fromJS(obj);
+		result()[0].b = ko.observable(123);
+		var toJS = ko.mapping.toJS(result);
+		
+		value_of(ko.isObservable(result()[0].b)).should_be(true);
+		value_of(result()[0].b()).should_be(123);
 	}
+
 })
