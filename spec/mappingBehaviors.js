@@ -1,25 +1,3 @@
-var mockPush = function (result) {
-	var originalPush = result.push;
-
-	var pushed = [];
-	result.push = function (value) {
-		pushed.push(value);
-		return originalPush(value);
-	}
-	return pushed;
-}
-
-var mockRemove = function (result) {
-	var originalRemove = result.remove;
-
-	var removed = [];
-	result.remove = function (valueOrPredicate) {
-		removed.push(valueOrPredicate);
-		return originalRemove(valueOrPredicate);
-	}
-	return removed;
-}
-
 describe('Mapping', {
 
 	'ko.mapping.toJS should unwrap observable values': function () {
@@ -59,6 +37,30 @@ describe('Mapping', {
 		value_of(result[0]).should_be('a');
 		value_of(result[1]).should_be(1);
 		value_of(result[2].someProp).should_be('Hey');
+	},
+	
+	'ko.mapping.toJS should ignore specified single property': function() {
+		var data = {
+			a: "a",
+			b: "b"
+		};
+		
+		var result = ko.mapping.toJS(data, { ignore: "b" });
+		value_of(result.a).should_be("a");
+		value_of(result.b).should_be(undefined);
+	},
+
+	'ko.mapping.toJS should ignore specified properties': function() {
+		var data = {
+			a: "a",
+			b: "b",
+			c: "c"
+		};
+		
+		var result = ko.mapping.toJS(data, { ignore: ["b", "c"] });
+		value_of(result.a).should_be("a");
+		value_of(result.b).should_be(undefined);
+		value_of(result.c).should_be(undefined);
 	},
 
 	'ko.mapping.toJSON should unwrap everything and then stringify': function () {
@@ -744,22 +746,15 @@ describe('Mapping', {
 		var obj2 = ["a3", "a4", 7];
 
 		var result = ko.mapping.fromJS(obj);
-		pushed = mockPush(result);
-		removed = mockRemove(result);
 
 		ko.mapping.updateFromJS(result, obj2);
 		value_of(result().length).should_be(3);
-		value_of(pushed.length).should_be(3);
-		value_of(removed.length).should_be(3);
 		value_of(result()).should_include("a3");
 		value_of(result()).should_include("a4");
 		value_of(result()).should_include(7);
 	},
 
 	'ko.mapping.updateFromJS should update arrays containing objects': function () {
-		var pushed = [];
-		var removed = [];
-
 		var obj = {
 			a: [{
 				id: 1,
@@ -790,13 +785,9 @@ describe('Mapping', {
 			}
 		};
 		var result = ko.mapping.fromJS(obj, options);
-		pushed = mockPush(result.a);
-		removed = mockRemove(result.a);
 
 		ko.mapping.updateFromJS(result, obj2);
 		value_of(result.a().length).should_be(2);
-		value_of(pushed.length).should_be(1);
-		value_of(removed.length).should_be(1);
 		value_of(result.a()[0].value()).should_be("a1");
 		value_of(result.a()[1].value()).should_be("a3");
 	},
@@ -871,5 +862,45 @@ describe('Mapping', {
 		value_of(items.length).should_be(1);
 		value_of(items[0]).should_be(2);
 	},
+	
+	'ko.mapping.updateFromJS should reuse options that were added in ko.mapping.fromJS': function() {
+		var viewModelMapping = {
+			key: function(data) {
+				return ko.utils.unwrapObservable(data.id);
+			},
+			create: function(data, parent) {
+				return new viewModel({ data: data });
+			}
+		};
+		
+		var viewModel = function(options) {
+			var mapping = {
+				entries: viewModelMapping
+			};
 
+			ko.mapping.fromJS(options.data, mapping, this);
+
+			this.func = function() { return true; };
+		};
+		
+        var model = ko.mapping.fromJS([], viewModelMapping);
+		
+        var data = [{
+			"id": 1,
+			"entries": [{
+				"id": 2,
+				"entries": [{
+					"id": 3,
+					"entries": []
+				}]
+			}]
+        }];
+		
+		ko.mapping.updateFromJS(model, data);
+		ko.mapping.updateFromJS(model, data);
+		
+		value_of(model()[0].func()).should_be(true);
+		value_of(model()[0].entries()[0].func()).should_be(true);
+		value_of(model()[0].entries()[0].entries()[0].func()).should_be(true);
+	}
 })
