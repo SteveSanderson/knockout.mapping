@@ -254,23 +254,23 @@ describe('Mapping', {
 		
 		var result = ko.mapping.fromJS(obj, {
 			a: {
-				create: function(data, parent) {
+				create: function(options) {
 					return {
-						a1: ko.observable(data.a1),
+						a1: ko.observable(options.data.a1),
 						observeB: ko.dependentObservable(function() {
 							dependencyInvocations.push("a");
-							return parent.b.b1();
+							return options.parent.b.b1();
 						})
 					}
 				}
 			},
 			b: {
-				create: function(data, parent) {
+				create: function(options) {
 					return {
-						b1: ko.observable(data.b1),
+						b1: ko.observable(options.data.b1),
 						observeA: ko.dependentObservable(function() {
 							dependencyInvocations.push("b");
-							return parent.a.a1();
+							return options.parent.a.a1();
 						})
 					}
 				},
@@ -296,12 +296,12 @@ describe('Mapping', {
 		
 		var result = ko.mapping.fromJS(obj, {
 			"items": {
-				create: function(data, parent) {
+				create: function(options) {
 					return {
-						id: ko.observable(data.id),
+						id: ko.observable(options.data.id),
 						observeParent: ko.dependentObservable(function() {
 							dependencyInvocations++;
-							return parent.items().length;
+							return options.parent().length;
 						})
 					}
 				}
@@ -337,9 +337,9 @@ describe('Mapping', {
 		
 		var result = ko.mapping.fromJS(obj, {
 			"b1": {
-				create: function(model, parent) {
-					value_of(ko.isObservable(parent.a)).should_be(true);
-					value_of(parent.a()).should_be("a");
+				create: function(options) {
+					value_of(ko.isObservable(options.parent.a)).should_be(true);
+					value_of(options.parent.a()).should_be("a");
 				}
 			}
 		});
@@ -357,9 +357,9 @@ describe('Mapping', {
 		var numCreated = 0;
 		var result = ko.mapping.fromJS(obj, {
 			"b": {
-				create: function(model, parent) {
-					value_of(ko.isObservable(parent.a)).should_be(true);
-					value_of(parent.a()).should_be("a");
+				create: function(options) {
+					value_of(ko.isObservable(options.parent)).should_be(true);
+					value_of(options.parent() instanceof Array).should_be(true);
 					numCreated++;
 				}
 			}
@@ -370,8 +370,8 @@ describe('Mapping', {
 
 	'ko.mapping.updateFromJS should update objects in arrays that were specified in the overriden model in the create callback': function () {
 		var options = {
-			create: function(data, parent) {
-				return ko.mapping.fromJS(data);
+			create: function(options) {
+				return ko.mapping.fromJS(options.data);
 			}
 		}
 		
@@ -394,9 +394,9 @@ describe('Mapping', {
 		
 		var options = {
 			key: function(item) { return ko.utils.unwrapObservable(item.id); },
-			create: function(data, parent) {
-				created.push(data.id);
-				return ko.mapping.fromJS(data);
+			create: function(options) {
+				created.push(options.data.id);
+				return ko.mapping.fromJS(options.data);
 			},
 			arrayChanged: function(event, item) {
 				arrayEvents++;
@@ -868,8 +868,8 @@ describe('Mapping', {
 			key: function(data) {
 				return ko.utils.unwrapObservable(data.id);
 			},
-			create: function(data, parent) {
-				return new viewModel({ data: data });
+			create: function(options) {
+				return new viewModel(options);
 			}
 		};
 		
@@ -930,6 +930,119 @@ describe('Mapping', {
 		
 		value_of(ko.isObservable(result()[0].b)).should_be(true);
 		value_of(result()[0].b()).should_be(123);
+	},
+
+	'observableArray.mappedRemove should use key callback if available': function() {
+		var obj = [
+			{ id : 1 },
+			{ id : 2 }
+		]
+		
+		var result = ko.mapping.fromJS(obj, {
+			key: function(item) {
+				return ko.utils.unwrapObservable(item.id);
+			}
+		});
+		result.mappedRemove({ id : 2 });
+		value_of(result().length).should_be(1);
+	},
+	
+	'observableArray.mappedRemove with predicate should use key callback if available': function() {
+		var obj = [
+			{ id : 1 },
+			{ id : 2 }
+		]
+		
+		var result = ko.mapping.fromJS(obj, {
+			key: function(item) {
+				return ko.utils.unwrapObservable(item.id);
+			}
+		});
+		result.mappedRemove(function(key) {
+			return key == 2;
+		});
+		value_of(result().length).should_be(1);
+	},
+	
+	'observableArray.mappedRemoveAll should use key callback if available': function() {
+		var obj = [
+			{ id : 1 },
+			{ id : 2 }
+		]
+		
+		var result = ko.mapping.fromJS(obj, {
+			key: function(item) {
+				return ko.utils.unwrapObservable(item.id);
+			}
+		});
+		result.mappedRemoveAll([{ id : 2 }]);
+		value_of(result().length).should_be(1);
+	},
+	
+	'observableArray.mappedDestroy should use key callback if available': function() {
+		var obj = [
+			{ id : 1 },
+			{ id : 2 }
+		]
+		
+		var result = ko.mapping.fromJS(obj, {
+			key: function(item) {
+				return ko.utils.unwrapObservable(item.id);
+			}
+		});
+		result.mappedDestroy({ id : 2 });
+		value_of(result()[0]._destroy).should_be(undefined);
+		value_of(result()[1]._destroy).should_be(true);
+	},
+	
+	'observableArray.mappedDestroy with predicate should use key callback if available': function() {
+		var obj = [
+			{ id : 1 },
+			{ id : 2 }
+		]
+		
+		var result = ko.mapping.fromJS(obj, {
+			key: function(item) {
+				return ko.utils.unwrapObservable(item.id);
+			}
+		});
+		result.mappedDestroy(function(key) {
+			return key == 2;
+		});
+		value_of(result()[0]._destroy).should_be(undefined);
+		value_of(result()[1]._destroy).should_be(true);
+	},
+		
+	'observableArray.mappedDestroyAll should use key callback if available': function() {
+		var obj = [
+			{ id : 1 },
+			{ id : 2 }
+		]
+		
+		var result = ko.mapping.fromJS(obj, {
+			key: function(item) {
+				return ko.utils.unwrapObservable(item.id);
+			}
+		});
+		result.mappedDestroyAll([{ id : 2 }]);
+		value_of(result()[0]._destroy).should_be(undefined);
+		value_of(result()[1]._destroy).should_be(true);
+	},
+	
+	'observableArray.mappedIndexOf should use key callback if available': function() {
+		var obj = [
+			{ id : 1 },
+			{ id : 2 }
+		]
+		
+		var result = ko.mapping.fromJS(obj, {
+			key: function(item) {
+				return ko.utils.unwrapObservable(item.id);
+			}
+		});
+		value_of(result.mappedIndexOf({ id : 1 })).should_be(0);
+		value_of(result.mappedIndexOf({ id : 2 })).should_be(1);
+		value_of(result.mappedIndexOf({ id : 3 })).should_be(-1);
 	}
 
 })

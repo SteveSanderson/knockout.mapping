@@ -170,7 +170,10 @@ ko.exportProperty = function (owner, publicName, object) {
 				if (!mappedRootObject) {
 					if (hasCreateCallback()) {
 						proxyDependentObservable();
-						var result = options[parentName].create(rootObject, parent);
+						var result = options[parentName].create({
+							data: rootObject,
+							parent: parent
+						});
 						unproxyDependentObservable();
 						return result;
 					} else {
@@ -195,10 +198,6 @@ ko.exportProperty = function (owner, publicName, object) {
 				});
 			}
 		} else {
-			if (!ko.isObservable(mappedRootObject)) {
-				mappedRootObject = ko.observableArray([]);
-			}
-
 			var changes = [];
 
 			var keyCallback = function (x) {
@@ -206,6 +205,44 @@ ko.exportProperty = function (owner, publicName, object) {
 			}
 			if (options[parentName] && options[parentName].key) {
 				keyCallback = options[parentName].key;
+			}
+			
+			if (!ko.isObservable(mappedRootObject)) {
+				mappedRootObject = ko.observableArray([]);
+				
+				mappedRootObject.mappedRemove = function(valueOrPredicate) {
+					var predicate = typeof valueOrPredicate == "function" ? valueOrPredicate : function (value) { return value === keyCallback(valueOrPredicate); };
+					return mappedRootObject.remove(function(item) {
+						return predicate(keyCallback(item));
+					});
+				}
+
+				mappedRootObject.mappedRemoveAll = function(arrayOfValues) {
+					var arrayOfKeys = filterArrayByKey(arrayOfValues, keyCallback);
+					return mappedRootObject.remove(function(item) {
+						return ko.utils.arrayIndexOf(arrayOfKeys, keyCallback(item)) != -1;
+					});
+				}
+
+				mappedRootObject.mappedDestroy = function(valueOrPredicate) {
+					var predicate = typeof valueOrPredicate == "function" ? valueOrPredicate : function (value) { return value === keyCallback(valueOrPredicate); };
+					return mappedRootObject.destroy(function(item) {
+						return predicate(keyCallback(item));
+					});
+				}
+
+				mappedRootObject.mappedDestroyAll = function(arrayOfValues) {
+					var arrayOfKeys = filterArrayByKey(arrayOfValues, keyCallback);
+					return mappedRootObject.destroy(function(item) {
+						return ko.utils.arrayIndexOf(arrayOfKeys, keyCallback(item)) != -1;
+					});
+				}
+
+				mappedRootObject.mappedIndexOf = function(item) {
+					var keys = filterArrayByKey(mappedRootObject(), keyCallback);
+					var key = keyCallback(item);
+					return ko.utils.arrayIndexOf(keys, key);
+				}
 			}
 
 			var currentArrayKeys = filterArrayByKey(ko.utils.unwrapObservable(mappedRootObject), keyCallback).sort();
@@ -218,7 +255,7 @@ ko.exportProperty = function (owner, publicName, object) {
 				switch (key.status) {
 				case "added":
 					var item = getItemByKey(ko.utils.unwrapObservable(rootObject), key.value, keyCallback);
-					var mappedItem = ko.utils.unwrapObservable(updateViewModel(undefined, item, options, visitedObjects, parentName, parent));
+					var mappedItem = ko.utils.unwrapObservable(updateViewModel(undefined, item, options, visitedObjects, parentName, mappedRootObject));
 					
 					var index = ko.utils.arrayIndexOf(ko.utils.unwrapObservable(rootObject), item);
 					newContents[index] = mappedItem;
@@ -226,7 +263,7 @@ ko.exportProperty = function (owner, publicName, object) {
 				case "retained":
 					var item = getItemByKey(ko.utils.unwrapObservable(rootObject), key.value, keyCallback);
 					var mappedItem = getItemByKey(mappedRootObject, key.value, keyCallback);
-					updateViewModel(mappedItem, item, options, visitedObjects, parentName, parent);
+					updateViewModel(mappedItem, item, options, visitedObjects, parentName, mappedRootObject);
 					
 					var index = ko.utils.arrayIndexOf(ko.utils.unwrapObservable(rootObject), item);
 					newContents[index] = mappedItem;
