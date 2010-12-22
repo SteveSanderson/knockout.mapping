@@ -59,6 +59,8 @@ ko.exportProperty = function (owner, publicName, object) {
 		if (!(options.ignore instanceof Array)) {
 			options.ignore = [options.ignore];
 		}
+		
+		options.ignore.push(mappingProperty);
 
 		// We just unwrap everything at every level in the object graph
 		return ko.mapping.visitModel(rootObject, function (x) {
@@ -113,17 +115,6 @@ ko.exportProperty = function (owner, publicName, object) {
 		recursionDepth++;
 		var result = updateViewModel(mappedRootObject, rootObject, options);
 		recursionDepth--;
-
-		if (!recursionDepth) {
-			// Now, evaluate all the proxied dependent observables
-			// TODO: Extract the generated subscriptions and parse them recursively, instead of just going over every item
-			ko.mapping.visitModel(result, function (item) {
-				if (item && item.__ko_proto__ == realKoDependentObservable) {
-					item.evaluate();
-				}
-				return item;
-			});
-		}
 
 		return result;
 	}

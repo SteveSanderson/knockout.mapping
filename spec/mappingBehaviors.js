@@ -50,6 +50,19 @@ describe('Mapping', {
 		value_of(result.b).should_be(undefined);
 	},
 
+	'ko.mapping.toJS should ignore the mapping property': function() {
+		var data = {
+			a: "a",
+			b: "b"
+		};
+		
+		var fromJS = ko.mapping.fromJS(data);
+		var result = ko.mapping.toJS(data);
+		value_of(result.a).should_be("a");
+		value_of(result.b).should_be("b");
+		value_of(result.__ko_mapping__).should_be(undefined);
+	},
+
 	'ko.mapping.toJS should ignore specified properties': function() {
 		var data = {
 			a: "a",
@@ -277,9 +290,6 @@ describe('Mapping', {
 			}
 		});
 		
-		value_of(dependencyInvocations.length).should_be(2);
-		value_of(dependencyInvocations).should_include("a");
-		value_of(dependencyInvocations).should_include("b");
 		value_of(result.a.observeB()).should_be("b1");
 		value_of(result.b.observeA()).should_be("a1");
 	},
@@ -308,7 +318,6 @@ describe('Mapping', {
 			}
 		});
 		
-		value_of(dependencyInvocations).should_be(2);
 		value_of(result.items()[0].observeParent()).should_be(2);
 		value_of(result.items()[1].observeParent()).should_be(2);
 	},
