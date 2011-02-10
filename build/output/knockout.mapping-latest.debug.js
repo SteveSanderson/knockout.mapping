@@ -296,7 +296,8 @@ ko.exportProperty = function (owner, publicName, object) {
 			return mapKey(item, callback) == key;
 		});
 
-		if (filtered.length != 1) throw new Error("When calling ko.update*, the key '" + key + "' was not found or not unique!");
+		if (filtered.length == 0) throw new Error("When calling ko.update*, the key '" + key + "' was not found!");
+		if ((filtered.length > 1) && (canHaveProperties(filtered[0]))) throw new Error("When calling ko.update*, the key '" + key + "' was not unique!");
 
 		return filtered[0];
 	}

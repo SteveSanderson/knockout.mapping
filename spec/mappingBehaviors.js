@@ -220,6 +220,31 @@ describe('Mapping', {
 		value_of(result.a.a1).should_be('Hello');
 	},
 
+	'ko.mapping.fromJS should allow non-unique atomic properties': function () {
+		ko.mapping.fromJS({
+			a: [1, 2, 1]
+		});
+	},
+
+	'ko.mapping.fromJS should not allow non-unique non-atomic properties': function () {
+		var options = {
+			key: function(item) { return ko.utils.unwrapObservable(item.id); }
+		};
+
+		var didThrow = false;
+		try {
+			ko.mapping.fromJS([
+				{ id: "a1" },
+				{ id: "a2" },
+				{ id: "a1" }
+			], options);
+		}
+		catch (ex) {
+			didThrow = true
+		}
+		value_of(didThrow).should_be(true);
+	},
+
 	'ko.mapping.fromJS should map descendant properties on the supplied object as observables': function () {
 		var result = ko.mapping.fromJS({
 			a: {
