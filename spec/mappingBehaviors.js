@@ -50,19 +50,136 @@ describe('Mapping', {
 		value_of(result.b).should_be(undefined);
 	},
 
-	'ko.mapping.toJS should ignore the mapping property': function() {
+	'ko.mapping.toJS should include specified single property': function() {
+		var data = {
+			a: "a"
+		};
+		
+		var mapped = ko.mapping.fromJS(data);
+		mapped.c = 1;
+		mapped.d = 2;
+		var result = ko.mapping.toJS(mapped, { include: "c" });
+		value_of(result.a).should_be("a");
+		value_of(result.c).should_be(1);
+		value_of(result.d).should_be(undefined);
+	},
+
+	'ko.mapping.toJS should by default ignore the mapping property': function() {
 		var data = {
 			a: "a",
 			b: "b"
 		};
 		
 		var fromJS = ko.mapping.fromJS(data);
-		var result = ko.mapping.toJS(data);
+		var result = ko.mapping.toJS(fromJS);
 		value_of(result.a).should_be("a");
 		value_of(result.b).should_be("b");
 		value_of(result.__ko_mapping__).should_be(undefined);
 	},
 
+	'ko.mapping.toJS should by default include the _destroy property': function() {
+		var data = {
+			a: "a"
+		};
+		
+		var fromJS = ko.mapping.fromJS(data);
+		fromJS._destroy = true;
+		var result = ko.mapping.toJS(fromJS);
+		value_of(result.a).should_be("a");
+		value_of(result._destroy).should_be(true);
+	},
+
+	'ko.mapping.defaultOptions should by default include the _destroy property': function() {
+		value_of(ko.utils.arrayIndexOf(ko.mapping.defaultOptions().include, "_destroy")).should_not_be(-1);
+	},
+
+	'ko.mapping.defaultOptions can be set': function() {
+		var oldOptions = ko.mapping.defaultOptions();
+		ko.mapping.defaultOptions({ a: "a" });
+		var newOptions = ko.mapping.defaultOptions();
+		ko.mapping.defaultOptions(oldOptions);
+		value_of(newOptions.a).should_be("a");
+	},
+
+	'ko.mapping.toJS should ignore properties that were not part of the original model': function () {
+		var data = {
+			a: 123,
+			b: {
+				b1: 456,
+				b2: [
+					"b21", "b22"
+				],
+			}
+		};
+		
+		var mapped = ko.mapping.fromJS(data);
+		mapped.extraProperty = ko.observable(333);
+		mapped.extraFunction = function() {};
+		
+		var unmapped = ko.mapping.toJS(mapped);
+		value_of(unmapped.a).should_be(123);
+		value_of(unmapped.b.b1).should_be(456);
+		value_of(unmapped.b.b2[0]).should_be("b21");
+		value_of(unmapped.b.b2[1]).should_be("b22");
+		value_of(unmapped.extraProperty).should_be(undefined);
+		value_of(unmapped.extraFunction).should_be(undefined);
+		value_of(unmapped.__ko_mapping__).should_be(undefined);
+	},
+
+	'ko.mapping.toJS should ignore properties that were not part of the original model when there are no nested create callbacks': function () {
+		var data = [
+			{
+				a: [{ id: "a1.1" }, { id: "a1.2" }]
+			}
+		];
+		
+		var mapped = ko.mapping.fromJS(data, {
+			create: function(options) {
+				return ko.mapping.fromJS(options.data);
+			}
+		});
+		mapped.extraProperty = ko.observable(333);
+		mapped.extraFunction = function() {};
+		
+		var unmapped = ko.mapping.toJS(mapped);
+		value_of(unmapped[0].a[0].id).should_be("a1.1");
+		value_of(unmapped[0].a[1].id).should_be("a1.2");
+		value_of(unmapped.extraProperty).should_be(undefined);
+		value_of(unmapped.extraFunction).should_be(undefined);
+		value_of(unmapped.__ko_mapping__).should_be(undefined);
+	},
+	
+	'ko.mapping.toJS should ignore properties that were not part of the original model when there are nested create callbacks': function () {
+		var data = [
+			{
+				a: [{ id: "a1.1" }, { id: "a1.2" }]
+			}
+		];
+		
+		var nestedMappingOptions = {
+			a: {
+				create: function(options) {
+					return ko.mapping.fromJS(options.data);
+				}
+			}
+		};
+		
+		var mapped = ko.mapping.fromJS(data, {
+			create: function(options) {
+				return ko.mapping.fromJS(options.data, nestedMappingOptions);
+			}
+		});
+		mapped.extraProperty = ko.observable(333);
+		mapped.extraFunction = function() {};
+		
+		var unmapped = ko.mapping.toJS(mapped);
+		value_of(unmapped[0].a[0].id).should_be("a1.1");
+		value_of(unmapped[0].a[1].id).should_be("a1.2");
+		value_of(unmapped.extraProperty).should_be(undefined);
+		value_of(unmapped.extraFunction).should_be(undefined);
+		value_of(unmapped.__ko_mapping__).should_be(undefined);
+	},
+	
 	'ko.mapping.toJS should ignore specified properties': function() {
 		var data = {
 			a: "a",
@@ -949,8 +1066,7 @@ describe('Mapping', {
 		
 		value_of(ko.isObservable(result.b)).should_be(true);
 		value_of(result.b()).should_be(123);
-		value_of(ko.isObservable(toJS.b)).should_be(false);
-		value_of(toJS.b).should_be(123);
+		value_of(toJS.b).should_be(undefined);
 	},
 	
 	'ko.mapping.toJS should not change the mapped array': function() {
