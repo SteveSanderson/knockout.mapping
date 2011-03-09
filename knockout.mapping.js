@@ -74,8 +74,8 @@ ko.exportProperty = function (owner, publicName, object) {
 	};
 
 	ko.mapping.toJSON = function (rootObject, options) {
-		var plainJavaScriptObject = ko.mapping.toJS(rootObject);
-		return ko.utils.stringifyJson(plainJavaScriptObject, options);
+		var plainJavaScriptObject = ko.mapping.toJS(rootObject, options);
+		return ko.utils.stringifyJson(plainJavaScriptObject);
 	};
 	
 	ko.mapping.defaultOptions = function() {

@@ -193,6 +193,17 @@ describe('Mapping', {
 		value_of(result.c).should_be(undefined);
 	},
 
+	'ko.mapping.toJSON should ignore specified properties': function() {
+		var data = {
+			a: "a",
+			b: "b",
+			c: "c"
+		};
+		
+		var result = ko.mapping.toJSON(data, { ignore: ["b", "c"] });
+		value_of(result).should_be("{\"a\":\"a\"}");
+	},
+
 	'ko.mapping.toJSON should unwrap everything and then stringify': function () {
 		var data = ko.observableArray(['a', 1,
 		{
