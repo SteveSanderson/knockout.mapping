@@ -249,25 +249,25 @@ ko.exportProperty = function (owner, publicName, object) {
 			var newContents = [];
 			for (var i = 0, j = editScript.length; i < j; i++) {
 				var key = editScript[i];
+				var mappedItem;
 				switch (key.status) {
 				case "added":
 					var item = getItemByKey(ko.utils.unwrapObservable(rootObject), key.value, keyCallback);
-					var mappedItem = ko.utils.unwrapObservable(updateViewModel(undefined, item, options, visitedObjects, parentName, mappedRootObject));
+					mappedItem = ko.utils.unwrapObservable(updateViewModel(undefined, item, options, visitedObjects, parentName, mappedRootObject));
 					
 					var index = ko.utils.arrayIndexOf(ko.utils.unwrapObservable(rootObject), item);
 					newContents[index] = mappedItem;
 					break;
 				case "retained":
 					var item = getItemByKey(ko.utils.unwrapObservable(rootObject), key.value, keyCallback);
-					var mappedItem = getItemByKey(mappedRootObject, key.value, keyCallback);
+					mappedItem = getItemByKey(mappedRootObject, key.value, keyCallback);
 					updateViewModel(mappedItem, item, options, visitedObjects, parentName, mappedRootObject);
 					
 					var index = ko.utils.arrayIndexOf(ko.utils.unwrapObservable(rootObject), item);
 					newContents[index] = mappedItem;
 					break;
 				case "deleted":
-					var mappedItem = getItemByKey(mappedRootObject, key.value, keyCallback);
-					mappedRootObject.remove(mappedItem);
+					mappedItem = getItemByKey(mappedRootObject, key.value, keyCallback);
 					break;
 				}
 
