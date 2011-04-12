@@ -20,14 +20,32 @@ ko.exportProperty = function (owner, publicName, object) {
 		include: ["_destroy"],
 		ignore: []
 	};
+
+    function extendObject(destination, source) {
+        for (var key in source) {
+            if (source.hasOwnProperty(key) && source[key]) {
+                destination[key] = source[key];
+            }
+        }
+    }
+    function getMergedMapping(mapping1, mapping2) {
+        var mergedMapping = {};
+        extendObject(mergedMapping, mapping1);
+        extendObject(mergedMapping, mapping2);
+
+        return mergedMapping;
+    }
 	
 	ko.mapping.fromJS = function (jsObject, options, target) {
 		if (arguments.length == 0) throw new Error("When calling ko.fromJS, pass the object you want to convert.");
 
 		options = fillOptions(options);
+
 		var result = updateViewModel(target, jsObject, options);
-		result[mappingProperty] = result[mappingProperty] || {};
-		result[mappingProperty] = options;
+
+        // Save any new mapping options in the view model, so that updateFromJS can use them later.
+        result[mappingProperty] = getMergedMapping(result[mappingProperty], options);
+
 		return result;
 	};
 
@@ -123,9 +141,10 @@ ko.exportProperty = function (owner, publicName, object) {
 	function updateViewModel(mappedRootObject, rootObject, options, visitedObjects, parentName, parent) {
 		var isArray = ko.utils.unwrapObservable(rootObject) instanceof Array;
 		
-		// If this object was already mapped previously, take the options from there
+		// If this object was already mapped previously, take the options from there and merge them with our existing ones.
 		if (ko.mapping.isMapped(mappedRootObject)) {
-			options = ko.utils.unwrapObservable(mappedRootObject)[mappingProperty];
+            var previousMapping = ko.utils.unwrapObservable(mappedRootObject)[mappingProperty];
+            options = getMergedMapping(previousMapping, options);
 		}
 		
 		var hasCreateCallback = function () {
