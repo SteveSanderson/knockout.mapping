@@ -1204,6 +1204,16 @@ describe('Mapping', {
 		value_of(result.mappedIndexOf({ id : 1 })).should_be(0);
 		value_of(result.mappedIndexOf({ id : 2 })).should_be(1);
 		value_of(result.mappedIndexOf({ id : 3 })).should_be(-1);
+	},
+	
+	'ko.mapping.fromJS should merge options from subsequent calls': function() {
+		var obj = ['a'];
+		
+		var result = ko.mapping.fromJS(obj, { dummyOption1: 1 });
+		ko.mapping.fromJS({}, { dummyOption2: 2 }, result);
+		
+		value_of(result.__ko_mapping__.dummyOption1).should_be(1);
+		value_of(result.__ko_mapping__.dummyOption2).should_be(2);
 	}
 
 })
