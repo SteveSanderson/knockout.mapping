@@ -16,11 +16,8 @@ ko.exportProperty = function (owner, publicName, object) {
 	var mappingProperty = "__ko_mapping__";
 	var realKoDependentObservable = ko.dependentObservable;
 
-	var defaultOptions = {
-		include: ["_destroy"],
-		ignore: []
-	};
-	
+	var defaultOptions;
+
 	function extendObject(destination, source) {
 		for (var key in source) {
 			if (source.hasOwnProperty(key) && source[key]) {
@@ -28,12 +25,13 @@ ko.exportProperty = function (owner, publicName, object) {
 			}
 		}
 	}
-	function getMergedMapping(mapping1, mapping2) {
-		var mergedMapping = {};
-		extendObject(mergedMapping, mapping1);
-		extendObject(mergedMapping, mapping2);
+	
+	function merge(obj1, obj2) {
+		var merged = {};
+		extendObject(merged, obj1);
+		extendObject(merged, obj2);
 
-		return mergedMapping;
+		return merged;
 	}
 	
 	ko.mapping.fromJS = function (jsObject, options, target) {
@@ -44,7 +42,7 @@ ko.exportProperty = function (owner, publicName, object) {
 		var result = updateViewModel(target, jsObject, options);
 
 		// Save any new mapping options in the view model, so that updateFromJS can use them later.
-		result[mappingProperty] = getMergedMapping(result[mappingProperty], options);
+		result[mappingProperty] = merge(result[mappingProperty], options);
 
 		return result;
 	};
@@ -73,17 +71,23 @@ ko.exportProperty = function (owner, publicName, object) {
 	};
 
 	ko.mapping.toJS = function (rootObject, options) {
+		if (!defaultOptions) ko.mapping.resetDefaultOptions();
+	
 		if (arguments.length == 0) throw new Error("When calling ko.mapping.toJS, pass the object you want to convert.");
+		if (!(defaultOptions.ignore instanceof Array)) throw new Error("ko.mapping.defaultOptions().ignore should be an array.");
+		if (!(defaultOptions.include instanceof Array)) throw new Error("ko.mapping.defaultOptions().include should be an array.");
 
 		options = options || {};
-		options.ignore = options.ignore || defaultOptions.ignore;
+		
 		if (!(options.ignore instanceof Array)) {
 			options.ignore = [options.ignore];
 		}
-		options.include = options.include || defaultOptions.include;
+		options.ignore = options.ignore.concat(defaultOptions.ignore);
+		
 		if (!(options.include instanceof Array)) {
 			options.include = [options.include];
 		}
+		options.include = options.include.concat(defaultOptions.include);
 
 		// We just unwrap everything at every level in the object graph
 		return ko.mapping.visitModel(rootObject, function(x) {
@@ -102,6 +106,13 @@ ko.exportProperty = function (owner, publicName, object) {
 		} else {
 			return defaultOptions;
 		}
+	};
+	
+	ko.mapping.resetDefaultOptions = function() {
+		defaultOptions = {
+			include: ["_destroy"],
+			ignore: []
+		};
 	};
 
 	function getType(x) {
@@ -144,7 +155,7 @@ ko.exportProperty = function (owner, publicName, object) {
 		// If this object was already mapped previously, take the options from there and merge them with our existing ones.
 		if (ko.mapping.isMapped(mappedRootObject)) {
 			var previousMapping = ko.utils.unwrapObservable(mappedRootObject)[mappingProperty];
-			options = getMergedMapping(previousMapping, options);
+			options = merge(previousMapping, options);
 		}
 		
 		var hasCreateCallback = function () {

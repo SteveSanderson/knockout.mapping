@@ -1,4 +1,7 @@
 describe('Mapping', {
+	before_each: function() {
+		ko.mapping.resetDefaultOptions();
+	},
 
 	'ko.mapping.toJS should unwrap observable values': function () {
 		var atomicValues = ["hello", 123, true, null, undefined,
@@ -89,8 +92,61 @@ describe('Mapping', {
 		value_of(result._destroy).should_be(true);
 	},
 
+	'ko.mapping.toJS should merge the default includes': function() {
+		var data = {
+			a: "a"
+		};
+		
+		var fromJS = ko.mapping.fromJS(data);
+		fromJS.b = "b";
+		fromJS._destroy = true;
+		var result = ko.mapping.toJS(fromJS, { include: "b" });
+		value_of(result.a).should_be("a");
+		value_of(result.b).should_be("b");
+		value_of(result._destroy).should_be(true);
+	},
+
+	'ko.mapping.toJS should merge the default ignores': function() {
+		var data = {
+			a: "a",
+			b: "b",
+			c: "c"
+		};
+		
+		ko.mapping.defaultOptions().ignore = ["a"];
+		var fromJS = ko.mapping.fromJS(data);
+		var result = ko.mapping.toJS(fromJS, { ignore: "b" });
+		value_of(result.a).should_be(undefined);
+		value_of(result.b).should_be(undefined);
+		value_of(result.c).should_be("c");
+	},
+
 	'ko.mapping.defaultOptions should by default include the _destroy property': function() {
 		value_of(ko.utils.arrayIndexOf(ko.mapping.defaultOptions().include, "_destroy")).should_not_be(-1);
+	},
+
+	'ko.mapping.defaultOptions.include should be an array': function() {
+		var didThrow = false;
+		try {
+			ko.mapping.defaultOptions().include = {};
+			ko.mapping.toJS({});
+		}
+		catch (ex) {
+			didThrow = true
+		}
+		value_of(didThrow).should_be(true);
+	},
+
+	'ko.mapping.defaultOptions.ignore should be an array': function() {
+		var didThrow = false;
+		try {
+			ko.mapping.defaultOptions().ignore = {};
+			ko.mapping.toJS({});
+		}
+		catch (ex) {
+			didThrow = true
+		}
+		value_of(didThrow).should_be(true);
 	},
 
 	'ko.mapping.defaultOptions can be set': function() {
