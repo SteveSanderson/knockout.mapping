@@ -1262,6 +1262,48 @@ describe('Mapping', {
 		value_of(result.mappedIndexOf({ id : 3 })).should_be(-1);
 	},
 	
+	'observableArray.mappedPush should use key callback if available and not allow duplicates': function() {
+		var obj = [
+			{ id : 1 },
+			{ id : 2 }
+		]
+		
+		var result = ko.mapping.fromJS(obj, {
+			key: function(item) {
+				return ko.utils.unwrapObservable(item.id);
+			}
+		});		
+		
+		result.mappedPush({ id : 1 });
+		value_of(result().length).should_be(2);	
+	},
+	
+	'observableArray.mappedPush should use create callback if available': function() {
+		var obj = [ 
+			{ id : 1 },
+			{ id : 2 }
+		]
+		
+		var childModel = function(data){			
+			ko.mapping.fromJS(data,{},this);
+			this.Hello = ko.observable("hello");
+		}
+		
+		var result = ko.mapping.fromJS(obj, {
+			key: function(item) {
+				return ko.utils.unwrapObservable(item.id);
+			},
+			create: function(options){				
+				return new childModel(options.data);
+			}
+		});
+				
+		result.mappedPush({id: 3});
+		var index = result.mappedIndexOf({ id : 3});
+		value_of(index).should_be(2);				
+		value_of(result()[index].Hello()).should_be("hello");
+	},
+	
 	'ko.mapping.fromJS should merge options from subsequent calls': function() {
 		var obj = ['a'];
 		
