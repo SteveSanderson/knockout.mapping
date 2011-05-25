@@ -278,10 +278,15 @@ ko.exportProperty = function (owner, publicName, object) {
 					return ko.utils.arrayIndexOf(keys, key);
 				}
 				
-				 mappedRootObject.mappedPush = function(value){                    
+				 mappedRootObject.mappedCreate = function(value){                    
                     if(mappedRootObject.mappedIndexOf(value) == -1){
-                        mappedRootObject.push(createCallBack(value));
+						var item = createCallBack(value);
+                        mappedRootObject.push(item);
+						return item;
                     }
+					else{
+						throw "KeyExistsError";
+					}
                 }
 			}
 
