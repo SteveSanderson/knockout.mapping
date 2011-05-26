@@ -232,7 +232,18 @@ ko.exportProperty = function (owner, publicName, object) {
 			if (options[parentName] && options[parentName].key) {
 				keyCallback = options[parentName].key;
 			}
-			
+			 var createCallBack = function(x) {
+                return x;
+            }
+            
+            if (hasCreateCallback()) {
+				createCallBack = function(value){
+                    return options[parentName].create({
+						data: value,
+						parent: parent
+					});
+                }
+			}
 			if (!ko.isObservable(mappedRootObject)) {
 				// When creating the new observable array, also add a bunch of utility functions that take the 'key' of the array items into account.
 				mappedRootObject = ko.observableArray([]);
@@ -270,6 +281,16 @@ ko.exportProperty = function (owner, publicName, object) {
 					var key = keyCallback(item);
 					return ko.utils.arrayIndexOf(keys, key);
 				}
+				
+				 mappedRootObject.mappedCreate = function(value){                    
+                    if (mappedRootObject.mappedIndexOf(value) !== -1) {
+						throw new Error("There already is an object with the key that you specified.");
+					}
+					
+					var item = createCallBack(value);
+                    mappedRootObject.push(item);
+					return item;
+                }
 			}
 
 			var currentArrayKeys = filterArrayByKey(ko.utils.unwrapObservable(mappedRootObject), keyCallback).sort();

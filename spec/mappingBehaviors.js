@@ -1274,15 +1274,15 @@ describe('Mapping', {
 			}
 		});		
 		
-		var exception = "";
-		
-		try{
+		var caught = false;
+		try {
 			result.mappedCreate({ id : 1 });
 		}		
-		catch(e){
-			exception = e;
-		}		
-		value_of(exception).should_be("KeyExistsError")
+		catch(e) {
+			caught = true;
+		}
+		
+		value_of(caught).should_be(true);
 		value_of(result().length).should_be(2);	
 	},
 	
@@ -1293,7 +1293,7 @@ describe('Mapping', {
 		]
 		
 		var childModel = function(data){			
-			ko.mapping.fromJS(data,{},this);
+			ko.mapping.fromJS(data, {}, this);
 			this.Hello = ko.observable("hello");
 		}
 		
@@ -1306,8 +1306,8 @@ describe('Mapping', {
 			}
 		});
 				
-		result.mappedCreate({id: 3});
-		var index = result.mappedIndexOf({ id : 3});
+		result.mappedCreate({ id: 3 });
+		var index = result.mappedIndexOf({ id : 3 });
 		value_of(index).should_be(2);				
 		value_of(result()[index].Hello()).should_be("hello");
 	},
