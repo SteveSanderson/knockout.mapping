@@ -1343,5 +1343,26 @@ describe('Mapping', {
 		]);
 		
 		value_of(gotDeletedEvent).should_be(false);
-	}
+	},
+	
+	'ko.mapping.updateFromJS should allow duplicate atomic items in arrays': function () {
+		var result = ko.mapping.fromJS([
+			"1", "1", "2"
+		]);
+		
+		value_of(result().length).should_be(3);
+		value_of(result()[0]).should_be("1");
+		value_of(result()[1]).should_be("1");
+		value_of(result()[2]).should_be("2");
+		
+		ko.mapping.updateFromJS(result, [
+			"1", "1", "1", "2"
+		]);
+		
+		value_of(result().length).should_be(4);
+		value_of(result()[0]).should_be("1");
+		value_of(result()[1]).should_be("1");
+		value_of(result()[2]).should_be("1");
+		value_of(result()[3]).should_be("2");
+	}	
 })

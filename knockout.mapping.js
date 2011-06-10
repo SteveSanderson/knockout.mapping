@@ -292,6 +292,8 @@ ko.exportProperty = function (owner, publicName, object) {
 			var currentArrayKeys = filterArrayByKey(ko.utils.unwrapObservable(mappedRootObject), keyCallback).sort();
 			var newArrayKeys = filterArrayByKey(rootObject, keyCallback).sort();
 			var editScript = ko.utils.compareArrays(currentArrayKeys, newArrayKeys);
+			
+			var ignoreIndexOf = {};
 
 			var newContents = [];
 			for (var i = 0, j = editScript.length; i < j; i++) {
@@ -302,16 +304,18 @@ ko.exportProperty = function (owner, publicName, object) {
 					var item = getItemByKey(ko.utils.unwrapObservable(rootObject), key.value, keyCallback);
 					mappedItem = ko.utils.unwrapObservable(updateViewModel(undefined, item, options, visitedObjects, parentName, mappedRootObject));
 					
-					var index = ko.utils.arrayIndexOf(ko.utils.unwrapObservable(rootObject), item);
+					var index = ignorableIndexOf(ko.utils.unwrapObservable(rootObject), item, ignoreIndexOf);
 					newContents[index] = mappedItem;
+					ignoreIndexOf[index] = true;
 					break;
 				case "retained":
 					var item = getItemByKey(ko.utils.unwrapObservable(rootObject), key.value, keyCallback);
 					mappedItem = getItemByKey(mappedRootObject, key.value, keyCallback);
 					updateViewModel(mappedItem, item, options, visitedObjects, parentName, mappedRootObject);
 					
-					var index = ko.utils.arrayIndexOf(ko.utils.unwrapObservable(rootObject), item);
+					var index = ignorableIndexOf(ko.utils.unwrapObservable(rootObject), item, ignoreIndexOf);
 					newContents[index] = mappedItem;
+					ignoreIndexOf[index] = true;
 					break;
 				case "deleted":
 					mappedItem = getItemByKey(mappedRootObject, key.value, keyCallback);
@@ -334,6 +338,14 @@ ko.exportProperty = function (owner, publicName, object) {
 		}
 
 		return mappedRootObject;
+	}
+	
+	function ignorableIndexOf(array, item, ignoreIndices) {
+        for (var i = 0, j = array.length; i < j; i++) {
+			if (ignoreIndices[i] === true) continue;
+			if (array[i] == item) return i;
+		}
+		return null;
 	}
 
 	function mapKey(item, callback) {
