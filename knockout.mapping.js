@@ -290,8 +290,8 @@ ko.exportProperty = function (owner, publicName, object) {
 			}
 
 			var currentArrayKeys = filterArrayByKey(ko.utils.unwrapObservable(mappedRootObject), keyCallback).sort();
-			var prevArrayKeys = filterArrayByKey(rootObject, keyCallback).sort();
-			var editScript = ko.utils.compareArrays(currentArrayKeys, prevArrayKeys);
+			var newArrayKeys = filterArrayByKey(rootObject, keyCallback).sort();
+			var editScript = ko.utils.compareArrays(currentArrayKeys, newArrayKeys);
 
 			var newContents = [];
 			for (var i = 0, j = editScript.length; i < j; i++) {
@@ -339,7 +339,7 @@ ko.exportProperty = function (owner, publicName, object) {
 	function mapKey(item, callback) {
 		var mappedItem;
 		if (callback) mappedItem = callback(item);
-		if (!mappedItem) mappedItem = item;
+		if (getType(mappedItem) === "undefined") mappedItem = item;
 
 		return ko.utils.unwrapObservable(mappedItem);
 	}
@@ -365,30 +365,6 @@ ko.exportProperty = function (owner, publicName, object) {
 		});
 	}
 
-	function compareArrays(prevArray, currentArray, mapKeyCallback, callback, callbackTarget) {
-		var currentArrayKeys = filterArrayByKey(currentArray, mapKeyCallback).sort();
-		var prevArrayKeys = filterArrayByKey(prevArray, mapKeyCallback).sort();
-		var editScript = ko.utils.compareArrays(prevArrayKeys, currentArrayKeys);
-
-		for (var i = 0, j = editScript.length; i < j; i++) {
-			var key = editScript[i];
-			switch (key.status) {
-			case "added":
-				var item = getItemByKey(ko.utils.unwrapObservable(currentArray), key.value, mapKeyCallback);
-				callback("added", item);
-				break;
-			case "retained":
-				var item = getItemByKey(currentArray, key.value, mapKeyCallback);
-				callback("retained", item);
-				break;
-			case "deleted":
-				var item = getItemByKey(ko.utils.unwrapObservable(prevArray), key.value, mapKeyCallback);
-				callback("deleted", item);
-				break;
-			}
-		}
-	}
-
 	function visitPropertiesOrArrayEntries(rootObject, visitorCallback) {
 		if (rootObject instanceof Array) {
 			for (var i = 0; i < rootObject.length; i++)
@@ -400,7 +376,8 @@ ko.exportProperty = function (owner, publicName, object) {
 	};
 
 	function canHaveProperties(object) {
-		return (getType(object) == "object") && (object !== null) && (object !== undefined);
+		var type = getType(object);
+		return (type == "object") && (object !== null) && (type !== "undefined");
 	}
 	
 	// Based on the parentName, this creates a fully classified name of a property
@@ -455,7 +432,7 @@ ko.exportProperty = function (owner, publicName, object) {
 				case "object":
 				case "undefined":
 					var previouslyMappedValue = options.visitedObjects.get(propertyValue);
-					mappedRootObject[indexer] = (previouslyMappedValue !== undefined) ? previouslyMappedValue : ko.mapping.visitModel(propertyValue, callback, options);
+					mappedRootObject[indexer] = (getType(previouslyMappedValue) !== "undefined") ? previouslyMappedValue : ko.mapping.visitModel(propertyValue, callback, options);
 					break;
 				default:
 					mappedRootObject[indexer] = callback(propertyValue, options.parentName);

@@ -1320,6 +1320,28 @@ describe('Mapping', {
 		
 		value_of(result.__ko_mapping__.dummyOption1).should_be(1);
 		value_of(result.__ko_mapping__.dummyOption2).should_be(2);
+	},
+	
+	'ko.mapping.updateFromJS should correctly handle falsey values in keys': function () {
+		var created = [];
+		var gotDeletedEvent = false;
+		
+		var options = {
+			key: function(item) { return ko.utils.unwrapObservable(item.id); },
+			arrayChanged: function(event, item) {
+				if (event === "deleted") gotDeletedEvent = true;
+			}
+		}
+		
+		var result = ko.mapping.fromJS([
+			{ id: 0 }
+		], options);
+		
+		ko.mapping.updateFromJS(result, [
+			{ id: 0 },
+			{ id: 1 }
+		]);
+		
+		value_of(gotDeletedEvent).should_be(false);
 	}
-
 })
