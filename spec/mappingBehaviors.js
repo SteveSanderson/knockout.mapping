@@ -545,6 +545,20 @@ describe('Mapping', {
 		value_of(index).should_be(1);
 	},
 	
+	'ko.mapping.fromJS should send relevant create callbacks when mapping arrays': function () {
+		var items = [];
+		var index = 0;
+		var result = ko.mapping.fromJS([
+			"hello"
+		], {
+			create: function (model) {
+				index++;
+				return model;
+			}
+		});
+		value_of(index).should_be(1);
+	},
+
 	'ko.mapping.fromJS should send parent along to create callback when creating an object': function() {
 		var obj = {
 			a: "a",
@@ -554,7 +568,7 @@ describe('Mapping', {
 		};
 		
 		var result = ko.mapping.fromJS(obj, {
-			"b1": {
+			"b": {
 				create: function(options) {
 					value_of(ko.isObservable(options.parent.a)).should_be(true);
 					value_of(options.parent.a()).should_be("a");
@@ -830,7 +844,7 @@ describe('Mapping', {
 		value_of(ko.isObservable(result.unknownProperty)).should_be(false);
 	},
 
-	'ko.mapping.fromJS should not send create callbacks when atomic items are constructed': function () {
+	'ko.mapping.fromJS should send create callbacks when atomic items are constructed': function () {
 		var atomicValues = ["hello", 123, true, null, undefined];
 		var callbacksReceived = 0;
 		for (var i = 0; i < atomicValues.length; i++) {
@@ -841,7 +855,7 @@ describe('Mapping', {
 				}
 			});
 		}
-		value_of(callbacksReceived).should_be(0);
+		value_of(callbacksReceived).should_be(5);
 	},
 
 	'ko.mapping.updateFromJS should send callbacks when atomic array elements are constructed': function () {
@@ -1364,5 +1378,5 @@ describe('Mapping', {
 		value_of(result()[1]).should_be("1");
 		value_of(result()[2]).should_be("1");
 		value_of(result()[3]).should_be("2");
-	}	
+	}
 })

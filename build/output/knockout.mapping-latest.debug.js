@@ -172,7 +172,6 @@ ko.exportProperty = function (owner, publicName, object) {
 		parentName = parentName || "";
 
 		if (!isArray) {
-
 			// For atomic types, do a direct update on the observable
 			if (!canHaveProperties(rootObject)) {
 				switch (getType(rootObject)) {
@@ -183,7 +182,16 @@ ko.exportProperty = function (owner, publicName, object) {
 					if (ko.isWriteableObservable(mappedRootObject)) {
 						mappedRootObject(ko.utils.unwrapObservable(rootObject));
 					} else {
-						mappedRootObject = ko.observable(ko.utils.unwrapObservable(rootObject));
+						if (hasCreateCallback()) {
+							proxyDependentObservable();
+							mappedRootObject = options[parentName].create({
+								data: rootObject,
+								parent: parent
+							});
+							unproxyDependentObservable();
+						} else {
+							mappedRootObject = ko.observable(ko.utils.unwrapObservable(rootObject));
+						}
 					}
 					break;
 				}
