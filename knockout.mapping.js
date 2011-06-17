@@ -16,7 +16,11 @@ ko.exportProperty = function (owner, publicName, object) {
 	var mappingProperty = "__ko_mapping__";
 	var realKoDependentObservable = ko.dependentObservable;
 
-	var defaultOptions;
+	var _defaultOptions = {
+		include: ["_destroy"],
+		ignore: []
+	};
+	var defaultOptions = _defaultOptions;
 
 	function extendObject(destination, source) {
 		for (var key in source) {
@@ -101,7 +105,7 @@ ko.exportProperty = function (owner, publicName, object) {
 	};
 	
 	ko.mapping.defaultOptions = function() {
-        if (arguments.length > 0) {
+		if (arguments.length > 0) {
 			defaultOptions = arguments[0];
 		} else {
 			return defaultOptions;
@@ -109,10 +113,7 @@ ko.exportProperty = function (owner, publicName, object) {
 	};
 	
 	ko.mapping.resetDefaultOptions = function() {
-		defaultOptions = {
-			include: ["_destroy"],
-			ignore: []
-		};
+		defaultOptions = _defaultOptions;
 	};
 
 	function getType(x) {
