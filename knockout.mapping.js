@@ -214,7 +214,7 @@ ko.exportProperty = function (owner, publicName, object) {
 
 				// For non-atomic types, visit all properties and update recursively
 				visitPropertiesOrArrayEntries(rootObject, function (indexer) {
-					if ( options.ignore.indexOf(indexer) != -1 ) {
+					if ( options.ignore && options.ignore.indexOf(indexer) != -1 ) {
 						mappedRootObject[indexer] = rootObject[indexer];
 						return;
 					}
