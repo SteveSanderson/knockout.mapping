@@ -117,7 +117,10 @@ ko.exportProperty = function (owner, publicName, object) {
 	};
 	
 	ko.mapping.resetDefaultOptions = function() {
-		defaultOptions = _defaultOptions;
+		defaultOptions = {
+			include: _defaultOptions.include.slice(0),
+			ignore: _defaultOptions.ignore.slice(0)
+		};
 	};
 
 	function getType(x) {
