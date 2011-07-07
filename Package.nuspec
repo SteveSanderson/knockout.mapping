@@ -13,6 +13,6 @@
     </dependencies>
   </metadata>
   <files>
-    <file src="build\output\*.*" target="" /> 
+    <file src="build\output\*.*" target="Content\scripts" /> 
   </files>
 </package>
