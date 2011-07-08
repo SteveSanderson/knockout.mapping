@@ -53,6 +53,99 @@ describe('Mapping', {
 		value_of(result.b).should_be(undefined);
 	},
 
+	'ko.mapping.fromJS should ignore specified single property': function() {
+		var data = {
+			a: "a",
+			b: "b"
+		};
+		
+		var result = ko.mapping.fromJS(data, { ignore: "b" });
+		value_of(result.a()).should_be("a");
+		value_of(result.b).should_be(undefined);
+	},
+
+	'ko.mapping.fromJS should ignore specified array item': function() {
+		var data = {
+			a: "a",
+			b: [{ b1: "v1" }, { b2: "v2" }] 
+		};
+		
+		var result = ko.mapping.fromJS(data, { ignore: "b[1].b2" });
+		value_of(result.a()).should_be("a");
+		value_of(result.b()[0].b1()).should_be("v1");
+		value_of(result.b()[1].b2).should_be(undefined);
+	},
+
+	'ko.mapping.fromJS should ignore specified single property, also when going back .toJS': function() {
+		var data = {
+			a: "a",
+			b: "b"
+		};
+		
+		var result = ko.mapping.fromJS(data, { ignore: "b" });
+		var js = ko.mapping.toJS(result);
+		value_of(js.a).should_be("a");
+		value_of(js.b).should_be(undefined);
+	},
+
+	'ko.mapping.fromJS should copy specified single property': function() {
+		var data = {
+			a: "a",
+			b: "b"
+		};
+		
+		var result = ko.mapping.fromJS(data, { copy: "b" });
+		value_of(result.a()).should_be("a");
+		value_of(result.b).should_be("b");
+	},
+
+	'ko.mapping.fromJS should copy specified array': function() {
+		var data = {
+			a: "a",
+			b: ["b1", "b2"]
+		};
+		
+		var result = ko.mapping.fromJS(data, { copy: "b" });
+		value_of(result.a()).should_be("a");
+		value_of(result.b).should_be(["b1", "b2"]);
+	},
+
+	'ko.mapping.fromJS should copy specified array item': function() {
+		var data = {
+			a: "a",
+			b: [{ b1: "v1" }, { b2: "v2" }] 
+		};
+		
+		var result = ko.mapping.fromJS(data, { copy: "b[0].b1" });
+		value_of(result.a()).should_be("a");
+		value_of(result.b()[0].b1).should_be("v1");
+		value_of(result.b()[1].b2()).should_be("v2");
+	},
+
+	'ko.mapping.fromJS should copy specified single property, also when going back .toJS': function() {
+		var data = {
+			a: "a",
+			b: "b"
+		};
+		
+		var result = ko.mapping.fromJS(data, { copy: "b" });
+		var js = ko.mapping.toJS(result);
+		value_of(js.a).should_be("a");
+		value_of(js.b).should_be("b");
+	},
+
+	'ko.mapping.fromJS should copy specified single property, also when going back .toJS, except when overridden': function() {
+		var data = {
+			a: "a",
+			b: "b"
+		};
+		
+		var result = ko.mapping.fromJS(data, { copy: "b" });
+		var js = ko.mapping.toJS(result, { ignore: "b" });
+		value_of(js.a).should_be("a");
+		value_of(js.b).should_be(undefined);
+	},
+	
 	'ko.mapping.toJS should include specified single property': function() {
 		var data = {
 			a: "a"
