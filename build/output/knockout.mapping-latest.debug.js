@@ -241,11 +241,11 @@ ko.exportProperty = function (owner, publicName, object) {
 				visitPropertiesOrArrayEntries(rootObject, function (indexer) {
 					var fullPropertyName = parentPropertyName.length ? parentPropertyName + "." + indexer : indexer;
 				
-					if (options.ignore.indexOf(fullPropertyName) != -1) {
+					if (ko.utils.arrayIndexOf(options.ignore, fullPropertyName) != -1) {
 						return;
 					}
 
-					if (options.copy.indexOf(fullPropertyName) != -1) {
+					if (ko.utils.arrayIndexOf(options.copy, fullPropertyName) != -1) {
 						mappedRootObject[indexer] = rootObject[indexer];
 						return;
 					}
