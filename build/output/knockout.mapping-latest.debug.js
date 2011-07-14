@@ -458,6 +458,10 @@ ko.exportProperty = function (owner, publicName, object) {
 		options = options || {};
 		options.visitedObjects = options.visitedObjects || new objectLookup();
 
+		if (!options.parentName) {
+			options = fillOptions(options);
+		}
+		
 		var mappedRootObject;
 		var unwrappedRootObject = ko.utils.unwrapObservable(rootObject);
 		if (!canHaveProperties(unwrappedRootObject)) {
