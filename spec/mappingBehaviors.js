@@ -1471,5 +1471,20 @@ describe('Mapping', {
 		value_of(result()[1]).should_be("1");
 		value_of(result()[2]).should_be("1");
 		value_of(result()[3]).should_be("2");
+	},
+
+	'when doing ko.mapping.fromJS on an already mapped object, the new options should combine with the old': function() {
+		var dataA = {
+			a: "a"
+		};
+		var dataB = {
+			b: "b"
+		};
+		
+		var mapped = {};
+		ko.mapping.fromJS(dataA, {}, mapped);
+		ko.mapping.fromJS(dataB, {}, mapped);
+		value_of(mapped.__ko_mapping__.mappedProperties.a).should_be(true);
+		value_of(mapped.__ko_mapping__.mappedProperties.b).should_be(true);
 	}
 })

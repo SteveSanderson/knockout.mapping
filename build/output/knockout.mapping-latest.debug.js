@@ -1,4 +1,4 @@
-// Knockout Mapping plugin v1.2
+// Knockout Mapping plugin v1.2.1
 // (c) 2011 Steven Sanderson, Roy Jacobs - http://knockoutjs.com/
 // License: Ms-Pl (http://www.opensource.org/licenses/ms-pl.html)
 
@@ -30,7 +30,11 @@ ko.exportProperty = function (owner, publicName, object) {
 	function extendObject(destination, source) {
 		for (var key in source) {
 			if (source.hasOwnProperty(key) && source[key]) {
-				destination[key] = source[key];
+				if (destination[key] && !(destination[key] instanceof Array)) {
+				  extendObject(destination[key], source[key]);
+				} else {
+				  destination[key] = source[key];
+				}
 			}
 		}
 	}
