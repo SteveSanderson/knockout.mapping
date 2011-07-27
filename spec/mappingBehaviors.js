@@ -1487,6 +1487,7 @@ describe('Mapping', {
 		value_of(mapped.__ko_mapping__.mappedProperties.a).should_be(true);
 		value_of(mapped.__ko_mapping__.mappedProperties.b).should_be(true);
 	},
+	
 	'nested calls to mapping should not revert proxyDependentObservable multiple times': function() {
 		var vmjs = {
 			"inner1": {
