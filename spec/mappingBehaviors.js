@@ -1486,5 +1486,36 @@ describe('Mapping', {
 		ko.mapping.fromJS(dataB, {}, mapped);
 		value_of(mapped.__ko_mapping__.mappedProperties.a).should_be(true);
 		value_of(mapped.__ko_mapping__.mappedProperties.b).should_be(true);
+	},
+	'nested calls to mapping should not revert proxyDependentObservable multiple times': function() {
+		var vmjs = {
+			"inner1": {
+				"inner2": {
+				}
+			}
+		}
+		var vm = undefined;
+		var mapping = {
+			"inner1": {
+				"create": function(options) {
+					//use the same mapping object to map inner2
+					var that = ko.mapping.fromJS(options.data, mapping);
+					that.DOprop = ko.dependentObservable(function() {
+						// if the DO is evaluated straight away, this will return undefined
+						return vm;
+					});
+					return that;
+				}
+			},
+			"inner2": {
+				"create": function(options) {
+					var that = ko.mapping.fromJS(options.data);
+					return that;
+				}
+			}
+		};
+		var vm = ko.mapping.fromJS(vmjs, mapping);
+		value_of(vm.inner1.DOprop()).should_be(vm);
 	}
-})
+});
+

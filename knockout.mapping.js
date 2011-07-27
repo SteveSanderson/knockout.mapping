@@ -158,19 +158,18 @@ ko.exportProperty = function (owner, publicName, object) {
 		return a.concat(b);
 	}
 
-	function proxyDependentObservable() {
+	function withProxyDependentObservable(callback) {
+		var localDO = ko.dependentObservable;
 		ko.dependentObservable = function() {
 			var options = arguments[2] || {};
 			options.deferEvaluation = true;
-			
 			var realDependentObservable = new realKoDependentObservable(arguments[0], arguments[1], options);
 			realDependentObservable.__ko_proto__ = realKoDependentObservable;
 			return realDependentObservable;
 		}
-	}
-
-	function unproxyDependentObservable() {
-		ko.dependentObservable = realKoDependentObservable;
+		var result = callback();
+		ko.dependentObservable = localDO;
+		return result;
 	}
 
 	function updateViewModel(mappedRootObject, rootObject, options, visitedObjects, parentName, parent, parentPropertyName) {
@@ -205,12 +204,12 @@ ko.exportProperty = function (owner, publicName, object) {
 						mappedRootObject(ko.utils.unwrapObservable(rootObject));
 					} else {
 						if (hasCreateCallback()) {
-							proxyDependentObservable();
-							mappedRootObject = options[parentName].create({
-								data: rootObject,
-								parent: parent
+							mappedRootObject = withProxyDependentObservable(function() {
+								return options[parentName].create({
+									data: rootObject,
+									parent: parent
+								});
 							});
-							unproxyDependentObservable();
 						} else {
 							mappedRootObject = ko.observable(ko.utils.unwrapObservable(rootObject));
 						}
@@ -223,12 +222,12 @@ ko.exportProperty = function (owner, publicName, object) {
 					if (hasCreateCallback()) {
 						// When using a 'create' callback, we proxy the dependent observable so that it doesn't immediately evaluate on creation.
 						// The reason is that the dependent observables in the user-specified callback may contain references to properties that have not been mapped yet.
-						proxyDependentObservable();
-						var result = options[parentName].create({
-							data: rootObject,
-							parent: parent
+						var result = withProxyDependentObservable(function() {
+							return options[parentName].create({
+								data: rootObject,
+								parent: parent
+							});
 						});
-						unproxyDependentObservable();
 						return result;
 					} else {
 						mappedRootObject = {};
