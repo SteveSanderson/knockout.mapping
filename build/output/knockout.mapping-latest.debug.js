@@ -1,4 +1,4 @@
-// Knockout Mapping plugin v1.2.2
+// Knockout Mapping plugin v1.2.3
 // (c) 2011 Steven Sanderson, Roy Jacobs - http://knockoutjs.com/
 // License: Ms-Pl (http://www.opensource.org/licenses/ms-pl.html)
 
@@ -270,11 +270,13 @@ ko.exportProperty = function (owner, publicName, object) {
 		} else {
 			var changes = [];
 
+			var hasKeyCallback = false;
 			var keyCallback = function (x) {
 				return x;
 			}
 			if (options[parentName] && options[parentName].key) {
 				keyCallback = options[parentName].key;
+				hasKeyCallback = true;
 			}
 			 var createCallBack = function(x) {
                 return x;
@@ -338,7 +340,8 @@ ko.exportProperty = function (owner, publicName, object) {
 			}
 
 			var currentArrayKeys = filterArrayByKey(ko.utils.unwrapObservable(mappedRootObject), keyCallback).sort();
-			var newArrayKeys = filterArrayByKey(rootObject, keyCallback).sort();
+			var newArrayKeys = filterArrayByKey(rootObject, keyCallback);
+			if (hasKeyCallback) newArrayKeys.sort();
 			var editScript = ko.utils.compareArrays(currentArrayKeys, newArrayKeys);
 			
 			var ignoreIndexOf = {};
@@ -407,7 +410,7 @@ ko.exportProperty = function (owner, publicName, object) {
 
 	function getItemByKey(array, key, callback) {
 		var filtered = ko.utils.arrayFilter(ko.utils.unwrapObservable(array), function (item) {
-			return mapKey(item, callback) == key;
+			return mapKey(item, callback) === key;
 		});
 
 		if (filtered.length == 0) throw new Error("When calling ko.update*, the key '" + key + "' was not found!");

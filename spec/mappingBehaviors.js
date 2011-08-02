@@ -1428,7 +1428,16 @@ describe('Mapping', {
 		value_of(result.__ko_mapping__.dummyOption1).should_be(1);
 		value_of(result.__ko_mapping__.dummyOption2).should_be(2);
 	},
-	
+
+	'ko.mapping.fromJS should correctly handle falsey values': function () {
+		var obj = [false, ""];
+
+		var result = ko.mapping.fromJS(obj);
+		
+		value_of(result()[0] === false).should_be(true);
+		value_of(result()[1] === "").should_be(true);
+	},
+
 	'ko.mapping.updateFromJS should correctly handle falsey values in keys': function () {
 		var created = [];
 		var gotDeletedEvent = false;
