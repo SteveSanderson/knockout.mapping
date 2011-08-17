@@ -66,17 +66,35 @@ ko.exportProperty = function (owner, publicName, object) {
 		return unwrapped && unwrapped[mappingProperty];
 	}
 
-	ko.mapping.updateFromJS = function (viewModel, jsObject) {
-		if (arguments.length < 2) throw new Error("When calling ko.updateFromJS, pass: the object to update and the object you want to update from.");
+	ko.mapping.updateFromJS = function (viewModel/*, jsObject, options*/) {
+		if ((arguments.length < 2) || (arguments.length > 3)) throw new Error("When calling ko.updateFromJS, pass: the object to update and the object you want to update from.");
 		if (!viewModel) throw new Error("The object is undefined.");
 		
-		if (!viewModel[mappingProperty]) throw new Error("The object you are trying to update was not created by a 'fromJS' or 'fromJSON' mapping.");
-		return updateViewModel(viewModel, jsObject, viewModel[mappingProperty]);
+		var jsObject;
+		var options;
+		if (arguments.length == 2) {
+			jsObject = arguments[1];
+			options = viewModel[mappingProperty];
+		} else {
+			options = arguments[1];
+			jsObject = arguments[2];
+			if (viewModel[mappingProperty]) {
+				options = merge(viewModel[mappingProperty], options);
+			}
+			viewModel[mappingProperty] = options;
+		}
+		
+		return updateViewModel(viewModel, jsObject, options);
 	};
 
-	ko.mapping.updateFromJSON = function (viewModel, jsonString, options) {
-		var parsed = ko.utils.parseJson(jsonString);
-		return ko.mapping.updateFromJS(viewModel, parsed, options);
+	ko.mapping.updateFromJSON = function (viewModel/*, jsonString, options*/) {
+		if ((arguments.length < 2) || (arguments.length > 3)) throw new Error("When calling ko.updateFromJSON, pass: the object to update and the JSON string you want to update from.");
+		
+		if (arguments.length == 2) {
+			return ko.mapping.updateFromJS(viewModel, ko.utils.parseJson(arguments[1]));
+		} else {
+			return ko.mapping.updateFromJS(viewModel, arguments[1], ko.utils.parseJson(arguments[2]));
+		}
 	};
 
 	ko.mapping.toJS = function (rootObject, options) {

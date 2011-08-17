@@ -1526,6 +1526,27 @@ describe('Mapping', {
 		};
 		var vm = ko.mapping.fromJS(vmjs, mapping);
 		value_of(vm.inner1.DOprop()).should_be(vm);
+	},
+	
+	'ko.mapping.updateFromJS should merge options from subsequent calls': function() {
+		var obj = ['a'];
+		
+		var result = ko.mapping.fromJS(obj, { dummyOption1: 1 });
+		ko.mapping.updateFromJS(result, { dummyOption2: 2 }, ['b']);
+		
+		value_of(result.__ko_mapping__.dummyOption1).should_be(1);
+		value_of(result.__ko_mapping__.dummyOption2).should_be(2);
+	},
+	
+	
+	'ko.mapping.updateFromJSON should merge options from subsequent calls': function() {
+		var obj = ['a'];
+		
+		var result = ko.mapping.fromJS(obj, { dummyOption1: 1 });
+		ko.mapping.updateFromJSON(result, { dummyOption2: 2 }, '["b"]');
+		
+		value_of(result.__ko_mapping__.dummyOption1).should_be(1);
+		value_of(result.__ko_mapping__.dummyOption2).should_be(2);
 	}
 });
 
