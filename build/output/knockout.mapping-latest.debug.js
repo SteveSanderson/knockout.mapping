@@ -88,6 +88,8 @@ ko.exportProperty = function (owner, publicName, object) {
 			viewModel[mappingProperty] = options;
 		}
 		
+		options = fillOptions(options);
+		
 		return updateViewModel(viewModel, jsObject, options);
 	};
 

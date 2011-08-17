@@ -1537,7 +1537,14 @@ describe('Mapping', {
 		value_of(result.__ko_mapping__.dummyOption1).should_be(1);
 		value_of(result.__ko_mapping__.dummyOption2).should_be(2);
 	},
-	
+
+	'ko.mapping.updateFromJS should work on unmapped objects': function() {
+		var obj = ko.observableArray(['a']);
+		
+		ko.mapping.updateFromJS(obj, ['b']);
+		
+		value_of(obj()[0]).should_be('b');
+	},
 	
 	'ko.mapping.updateFromJSON should merge options from subsequent calls': function() {
 		var obj = ['a'];
@@ -1548,5 +1555,6 @@ describe('Mapping', {
 		value_of(result.__ko_mapping__.dummyOption1).should_be(1);
 		value_of(result.__ko_mapping__.dummyOption2).should_be(2);
 	}
+	
 });
 
