@@ -1,4 +1,4 @@
-// Knockout Mapping plugin v1.2.4
+// Knockout Mapping plugin v2.0beta
 // (c) 2011 Steven Sanderson, Roy Jacobs - http://knockoutjs.com/
 // License: Ms-Pl (http://www.opensource.org/licenses/ms-pl.html)
 
@@ -46,13 +46,27 @@ ko.exportProperty = function (owner, publicName, object) {
 
 		return merged;
 	}
-	
-	ko.mapping.fromJS = function (jsObject, options, target) {
+
+	ko.mapping.isMapped = function(viewModel) {
+		var unwrapped = ko.utils.unwrapObservable(viewModel);
+		return unwrapped && unwrapped[mappingProperty];
+	}
+
+	ko.mapping.fromJS = function (jsObject, inputOptions, target) {
 		if (arguments.length == 0) throw new Error("When calling ko.fromJS, pass the object you want to convert.");
 
+		var options;
+		if (target) {
+			options = merge(inputOptions, target[mappingProperty]);
+		} else {
+			options = inputOptions;
+		}
 		options = fillOptions(options);
 
 		var result = updateViewModel(target, jsObject, options);
+		if (target) {
+			result = target;
+		}
 
 		// Save any new mapping options in the view model, so that updateFromJS can use them later.
 		result[mappingProperty] = merge(result[mappingProperty], options);
@@ -60,47 +74,18 @@ ko.exportProperty = function (owner, publicName, object) {
 		return result;
 	};
 
-	ko.mapping.fromJSON = function (jsonString, options) {
+	ko.mapping.fromJSON = function (jsonString, options, target) {
 		var parsed = ko.utils.parseJson(jsonString);
-		return ko.mapping.fromJS(parsed, options);
+		return ko.mapping.fromJS(parsed, options, target);
 	};
 	
-	ko.mapping.isMapped = function(viewModel) {
-		var unwrapped = ko.utils.unwrapObservable(viewModel);
-		return unwrapped && unwrapped[mappingProperty];
-	}
-
-	ko.mapping.updateFromJS = function (viewModel/*, jsObject, options*/) {
-		if ((arguments.length < 2) || (arguments.length > 3)) throw new Error("When calling ko.updateFromJS, pass: the object to update and the object you want to update from.");
-		if (!viewModel) throw new Error("The object is undefined.");
-		
-		var jsObject;
-		var options;
-		if (arguments.length == 2) {
-			jsObject = arguments[1];
-			options = viewModel[mappingProperty];
-		} else {
-			options = arguments[1];
-			jsObject = arguments[2];
-			if (viewModel[mappingProperty]) {
-				options = merge(viewModel[mappingProperty], options);
-			}
-			viewModel[mappingProperty] = options;
-		}
-		
-		options = fillOptions(options);
-		
-		return updateViewModel(viewModel, jsObject, options);
+	ko.mapping.updateFromJS = function (viewModel) {
+		throw new Error("ko.mapping.updateFromJS, use ko.mapping.fromJS instead. Please note that the order of parameters is different!");
 	};
 
-	ko.mapping.updateFromJSON = function (viewModel/*, jsonString, options*/) {
-		if ((arguments.length < 2) || (arguments.length > 3)) throw new Error("When calling ko.updateFromJSON, pass: the object to update and the JSON string you want to update from.");
-		
-		if (arguments.length == 2) {
-			return ko.mapping.updateFromJS(viewModel, ko.utils.parseJson(arguments[1]));
-		} else {
-			return ko.mapping.updateFromJS(viewModel, arguments[1], ko.utils.parseJson(arguments[2]));
-		}
+	//, jsonString, options
+	ko.mapping.updateFromJSON = function (viewModel) {
+		throw new Error("ko.mapping.updateFromJSON, use ko.mapping.fromJSON instead. Please note that the order of parameters is different!");
 	};
 
 	ko.mapping.toJS = function (rootObject, options) {
@@ -150,7 +135,7 @@ ko.exportProperty = function (owner, publicName, object) {
 		options = options || {};
 
 		// Is there only a root-level mapping present?
-		if ((options.create instanceof Function) || (options.key instanceof Function) || (options.arrayChanged instanceof Function)) {
+		if ((options.create instanceof Function) || (options.update instanceof Function) || (options.key instanceof Function) || (options.arrayChanged instanceof Function)) {
 			options = {
 				"": options
 			};
@@ -165,7 +150,7 @@ ko.exportProperty = function (owner, publicName, object) {
 		options.include = mergeArrays(options.include, defaultOptions.include);
 		options.copy = mergeArrays(options.copy, defaultOptions.copy);
 		
-		options.mappedProperties = {};
+		options.mappedProperties = options.mappedProperties || {};
 		return options;
 	}
 	
@@ -211,6 +196,10 @@ ko.exportProperty = function (owner, publicName, object) {
 			return options[parentName] && options[parentName].create instanceof Function;
 		}
 
+		var hasUpdateCallback = function () {
+			return options[parentName] && options[parentName].update instanceof Function;
+		}
+
 		visitedObjects = visitedObjects || new objectLookup();
 		if (visitedObjects.get(rootObject)) return mappedRootObject;
 
@@ -225,7 +214,14 @@ ko.exportProperty = function (owner, publicName, object) {
 					break;
 				default:
 					if (ko.isWriteableObservable(mappedRootObject)) {
-						mappedRootObject(ko.utils.unwrapObservable(rootObject));
+						if (hasUpdateCallback()) {
+							mappedRootObject(options[parentName].update(ko.utils.unwrapObservable(mappedRootObject), {
+								data: rootObject,
+								parent: parent
+							}));
+						} else {
+							mappedRootObject(ko.utils.unwrapObservable(rootObject));
+						}
 					} else {
 						if (hasCreateCallback()) {
 							mappedRootObject = withProxyDependentObservable(function() {
@@ -257,6 +253,14 @@ ko.exportProperty = function (owner, publicName, object) {
 						mappedRootObject = {};
 					}
 				}
+				
+				if (hasUpdateCallback()) {
+					return options[parentName].update(ko.utils.unwrapObservable(mappedRootObject), {
+						data: rootObject,
+						parent: parent
+					});
+				}
+				mappedRootObject = ko.utils.unwrapObservable(mappedRootObject);
 
 				visitedObjects.save(rootObject, mappedRootObject);
 
@@ -278,10 +282,20 @@ ko.exportProperty = function (owner, publicName, object) {
 					var prevMappedProperty = visitedObjects.get(rootObject[indexer]);
 					if (prevMappedProperty) {
 						// In case we are adding an already mapped property, fill it with the previously mapped property value to prevent recursion.
-						mappedRootObject[indexer] = prevMappedProperty;
+						if (ko.isWriteableObservable(mappedRootObject[indexer])) {
+							mappedRootObject[indexer](prevMappedProperty);
+						} else {
+							mappedRootObject[indexer] = prevMappedProperty;
+						}
 					} else {
 						// If this is a property that was generated by fromJS, we should use the options specified there
-						mappedRootObject[indexer] = updateViewModel(mappedRootObject[indexer], rootObject[indexer], options, visitedObjects, indexer, mappedRootObject, fullPropertyName);
+						if (ko.isWriteableObservable(mappedRootObject[indexer])) {
+							var val = updateViewModel(mappedRootObject[indexer](), rootObject[indexer], options, visitedObjects, indexer, mappedRootObject, fullPropertyName);
+							mappedRootObject[indexer](ko.utils.unwrapObservable(val));
+						} else {
+							var val = updateViewModel(mappedRootObject[indexer], rootObject[indexer], options, visitedObjects, indexer, mappedRootObject, fullPropertyName);
+							mappedRootObject[indexer] = val;
+						}
 					}
 					
 					options.mappedProperties[fullPropertyName] = true;
@@ -302,14 +316,28 @@ ko.exportProperty = function (owner, publicName, object) {
                 return x;
             }
             
+			 var updateCallBack = function(x) {
+                return x;
+            }
+            
             if (hasCreateCallback()) {
-				createCallBack = function(value){
+				createCallBack = function(value) {
                     return options[parentName].create({
 						data: value,
 						parent: parent
 					});
                 }
 			}
+
+            if (hasUpdateCallback()) {
+				updateCallBack = function(item) {
+                    return options[parentName].update(ko.uitls.unwrapObservable(item), {
+						data: value,
+						parent: parent
+					});
+                }
+			}
+
 			if (!ko.isObservable(mappedRootObject)) {
 				// When creating the new observable array, also add a bunch of utility functions that take the 'key' of the array items into account.
 				mappedRootObject = ko.observableArray([]);
@@ -354,6 +382,9 @@ ko.exportProperty = function (owner, publicName, object) {
 					}
 					
 					var item = createCallBack(value);
+					if (ko.isWriteableObservable(item)) {
+						item(updateCallBack(item));
+					}
                     mappedRootObject.push(item);
 					return item;
                 }

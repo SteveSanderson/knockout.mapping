@@ -701,10 +701,10 @@ describe('Mapping', {
 		}
 		
 		var result = ko.mapping.fromJS([], options);
-		ko.mapping.updateFromJS(result, [{
+		ko.mapping.fromJS([{
 			a: "a",
 			b: "b"
-		}]);
+		}], {}, result);
 
 		value_of(ko.isObservable(result)).should_be(true);
 		value_of(ko.isObservable(result()[0].a)).should_be(true);
@@ -732,10 +732,10 @@ describe('Mapping', {
 			{ id: "a" }
 		], options);
 		
-		ko.mapping.updateFromJS(result, [
+		ko.mapping.fromJS([
 			{ id: "a" },
 			{ id: "b" }
-		]);
+		], {}, result);
 
 		value_of(created[0]).should_be("a");
 		value_of(created[1]).should_be("b");
@@ -744,20 +744,6 @@ describe('Mapping', {
 		value_of(arrayEvents).should_be(3); // added, retained, added
 	},
 	
-	'ko.mapping.updateFromJS fails on objects that were not first mapped using fromJS': function() {
-		var result;
-		var didThrow = false;
-		try {
-			ko.mapping.updateFromJS(result, {
-				a: "hello"
-			});
-		}
-		catch (ex) {
-			didThrow = true
-		}
-		value_of(didThrow).should_be(true);
-	},
-
 	'ko.mapping.updateFromJS should not call the create callback for existing objects': function () {
 		var numCreate = 0;
 		var options = {
@@ -774,9 +760,9 @@ describe('Mapping', {
 			a: "hello"
 		}, options);
 
-		ko.mapping.updateFromJS(result, {
+		ko.mapping.fromJS({
 			a: "bye"
-		});
+		}, {}, result);
 
 		value_of(numCreate).should_be(1);
 	},
@@ -788,9 +774,9 @@ describe('Mapping', {
 		
 		var resultA = result.a;
 
-		ko.mapping.updateFromJS(result, {
+		ko.mapping.fromJS({
 			a: [1]
-		});
+		}, result);
 		
 		value_of(resultA).should_be(result.a);
 	},
@@ -806,9 +792,9 @@ describe('Mapping', {
 			}
 		};
 		var result = ko.mapping.fromJS({}, options);
-		ko.mapping.updateFromJS(result, {
+		ko.mapping.fromJS({
 			a: [1, 2]
-		});
+		}, {}, result);
 		value_of(added.length).should_be(2);
 		value_of(added[0]).should_be(1);
 		value_of(added[1]).should_be(2);
@@ -825,9 +811,9 @@ describe('Mapping', {
 			}
 		};
 		var result = ko.mapping.fromJS({ a: [] }, options);
-		ko.mapping.updateFromJS(result, {
+		ko.mapping.fromJS({
 			a: [1, 2]
-		});
+		}, {}, result);
 		value_of(added.length).should_be(2);
 		value_of(added[0]).should_be(1);
 		value_of(added[1]).should_be(2);
@@ -838,9 +824,9 @@ describe('Mapping', {
 		result.a = "a";
 		value_of(ko.isObservable(result.a)).should_be(false);
 		
-		ko.mapping.updateFromJS(result, {
+		ko.mapping.fromJS({
 			b: "b"
-		});
+		}, {}, result);
 		
 		value_of(ko.isObservable(result.a)).should_be(false);
 		value_of(ko.isObservable(result.b)).should_be(true);
@@ -858,9 +844,9 @@ describe('Mapping', {
 		};
 	
 		var result = ko.mapping.fromJS({}, options);
-		ko.mapping.updateFromJS(result, {
+		ko.mapping.fromJS({
 			b: "b"
-		});
+		}, {}, result);
 		
 		value_of(ko.isObservable(result.a)).should_be(false);
 		value_of(ko.isObservable(result.b)).should_be(true);
@@ -881,9 +867,9 @@ describe('Mapping', {
 		var result = ko.mapping.fromJS({
 			a: []
 		}, options);
-		ko.mapping.updateFromJS(result, {
+		ko.mapping.fromJS({
 			a: [1, 2]
-		});
+		}, {}, result);
 		value_of(added.length).should_be(2);
 		value_of(added[0]).should_be(1);
 		value_of(added[1]).should_be(2);
@@ -973,7 +959,7 @@ describe('Mapping', {
 				}
 			}
 		});
-		ko.mapping.updateFromJS(result, newItems);
+		ko.mapping.fromJS(newItems, {}, result);
 		value_of(items.length).should_be(2);
 	},
 
@@ -1006,7 +992,7 @@ describe('Mapping', {
 
 		var result;
 		result = ko.mapping.fromJS({});
-		ko.mapping.updateFromJS(result, obj);
+		ko.mapping.fromJS(obj, {}, result);
 		value_of(result.a().length).should_be(2);
 		value_of(result.a()[0]).should_be("a1");
 		value_of(result.a()[1]).should_be("a2");
@@ -1018,7 +1004,7 @@ describe('Mapping', {
 
 		for (var i = 0; i < atomicValues.length; i++) {
 			var result = ko.mapping.fromJS(atomicValues[i]);
-			ko.mapping.updateFromJS(result, atomicValues2[i]);
+			ko.mapping.fromJS(atomicValues2[i], {}, result);
 			value_of(ko.isObservable(result)).should_be(true);
 			value_of(result()).should_be(atomicValues2[i]);
 		}
@@ -1042,7 +1028,7 @@ describe('Mapping', {
 		}
 
 		var result = ko.mapping.fromJS(obj);
-		ko.mapping.updateFromJS(result, obj2);
+		ko.mapping.fromJS(obj2, {}, result);
 		value_of(result.a()).should_be("prop2");
 		value_of(result.b.b1()).should_be(124);
 		value_of(result.b.b2()).should_be("b22");
@@ -1060,7 +1046,7 @@ describe('Mapping', {
 		}
 
 		var result = ko.mapping.fromJS(obj);
-		ko.mapping.updateFromJS(result, obj2);
+		ko.mapping.fromJS(obj2, {}, result);
 		value_of(result.a()).should_be("prop2");
 		value_of(result.b()).should_include("b1");
 		value_of(result.b()).should_include("b2");
@@ -1072,7 +1058,7 @@ describe('Mapping', {
 
 		var result = ko.mapping.fromJS(obj);
 
-		ko.mapping.updateFromJS(result, obj2);
+		ko.mapping.fromJS(obj2, {}, result);
 		value_of(result().length).should_be(3);
 		value_of(result()).should_include("a3");
 		value_of(result()).should_include("a4");
@@ -1111,7 +1097,7 @@ describe('Mapping', {
 		};
 		var result = ko.mapping.fromJS(obj, options);
 
-		ko.mapping.updateFromJS(result, obj2);
+		ko.mapping.fromJS(obj2, {}, result);
 		value_of(result.a().length).should_be(2);
 		value_of(result.a()[0].value()).should_be("a1");
 		value_of(result.a()[1].value()).should_be("a3");
@@ -1121,7 +1107,7 @@ describe('Mapping', {
 		var obj = {};
 		obj.owner = obj;
 		var result = ko.mapping.fromJS(obj);
-		ko.mapping.updateFromJS(result, obj);
+		ko.mapping.fromJS(obj, {}, result);
 		value_of(result.owner).should_be(result);
 	},
 
@@ -1147,7 +1133,7 @@ describe('Mapping', {
 			}
 		};
 		var result = ko.mapping.fromJS(obj, options);
-		ko.mapping.updateFromJS(result, obj2);
+		ko.mapping.fromJS(obj2, {}, result);
 		value_of(mappedItems.length).should_be(2);
 		value_of(mappedItems[0].id()).should_be(1);
 		value_of(mappedItems[1].id()).should_be(2);
@@ -1165,7 +1151,7 @@ describe('Mapping', {
 		}]);
 
 		var result = ko.mapping.fromJS(obj);
-		ko.mapping.updateFromJS(result, obj2);
+		ko.mapping.fromJS(obj2, {}, result);
 		value_of(result().length).should_be(2);
 		value_of(result()[0].id()).should_be(1);
 		value_of(result()[1].id()).should_be(2);
@@ -1183,7 +1169,7 @@ describe('Mapping', {
 			}
 		};
 		var result = ko.mapping.fromJS(obj, options);
-		ko.mapping.updateFromJS(result, obj2);
+		ko.mapping.fromJS(obj2, {}, result);
 		value_of(items.length).should_be(1);
 		value_of(items[0]).should_be(2);
 	},
@@ -1221,8 +1207,8 @@ describe('Mapping', {
 			}]
         }];
 		
-		ko.mapping.updateFromJS(model, data);
-		ko.mapping.updateFromJS(model, data);
+		ko.mapping.fromJS(data, {}, model);
+		ko.mapping.fromJS(data, {}, model);
 		
 		value_of(model()[0].func()).should_be(true);
 		value_of(model()[0].entries()[0].func()).should_be(true);
@@ -1453,10 +1439,10 @@ describe('Mapping', {
 			{ id: 0 }
 		], options);
 		
-		ko.mapping.updateFromJS(result, [
+		ko.mapping.fromJS([
 			{ id: 0 },
 			{ id: 1 }
-		]);
+		], {}, result);
 		
 		value_of(gotDeletedEvent).should_be(false);
 	},
@@ -1471,9 +1457,9 @@ describe('Mapping', {
 		value_of(result()[1]).should_be("1");
 		value_of(result()[2]).should_be("2");
 		
-		ko.mapping.updateFromJS(result, [
+		ko.mapping.fromJS([
 			"1", "1", "1", "2"
-		]);
+		], {}, result);
 		
 		value_of(result().length).should_be(4);
 		value_of(result()[0]).should_be("1");
@@ -1532,7 +1518,7 @@ describe('Mapping', {
 		var obj = ['a'];
 		
 		var result = ko.mapping.fromJS(obj, { dummyOption1: 1 });
-		ko.mapping.updateFromJS(result, { dummyOption2: 2 }, ['b']);
+		ko.mapping.fromJS(['b'], { dummyOption2: 2 }, result);
 		
 		value_of(result.__ko_mapping__.dummyOption1).should_be(1);
 		value_of(result.__ko_mapping__.dummyOption2).should_be(2);
@@ -1541,7 +1527,7 @@ describe('Mapping', {
 	'ko.mapping.updateFromJS should work on unmapped objects': function() {
 		var obj = ko.observableArray(['a']);
 		
-		ko.mapping.updateFromJS(obj, ['b']);
+		ko.mapping.fromJS(['b'], {}, obj);
 		
 		value_of(obj()[0]).should_be('b');
 	},
@@ -1550,11 +1536,79 @@ describe('Mapping', {
 		var obj = ['a'];
 		
 		var result = ko.mapping.fromJS(obj, { dummyOption1: 1 });
-		ko.mapping.updateFromJSON(result, { dummyOption2: 2 }, '["b"]');
+		ko.mapping.fromJSON('["b"]', { dummyOption2: 2 }, result);
 		
 		value_of(result.__ko_mapping__.dummyOption1).should_be(1);
 		value_of(result.__ko_mapping__.dummyOption2).should_be(2);
-	}
+	},
 	
+	'ko.mapping.fromJS should be able to update observables not created by fromJS': function() {
+		var existing = {
+			a: ko.observable(),
+			d: ko.observableArray(),
+		};
+		
+		ko.mapping.fromJS({
+			a: {
+				b: "b!"
+			},
+			d: [2]
+		}, {}, existing);
+		
+		value_of(existing.a().b()).should_be("b!");
+		value_of(existing.d().length).should_be(1);
+		value_of(existing.d()[0]).should_be(2);
+	},
+	
+	'Store example': function() {
+		var data = {
+			"Products": [
+				{ "guid": "01", "name": "Product1" },
+				{ "guid": "02", "name": "Product2" },
+				{ "guid": "03", "name": "Product3" },
+			],
+			"Selected": { "guid": "02" }
+		};
+	
+		function Product(data) {
+			
+			var viewModel = {
+				guid: ko.observable(),
+				name : ko.observable()
+			};
+			
+			ko.mapping.fromJS(data, {}, viewModel);
+			
+			return viewModel;
+		}
+	
+		var mapping = {
+				Products: {
+					key: function(data) {
+						return ko.utils.unwrapObservable(data.guid);
+					},
+					create: function(options) {
+						return new Product(options.data);
+					}
+				},
+				Selected: {
+					update: function(currentValue, options) {
+						return ko.utils.arrayFirst(viewModel.Products(), function(p) {
+							return p.guid() == options.data.guid;
+						});
+					}
+				}
+			};
+
+		var viewModel = {
+			Products: ko.observableArray(),
+			Selected: ko.observable()
+		};
+
+		ko.mapping.fromJS(data, mapping, viewModel);
+		
+		console.log('products', ko.toJS(viewModel.Products()));
+		console.log('selected', ko.toJS(viewModel.Selected()));		
+	}
 });
 
