@@ -52,14 +52,26 @@ ko.exportProperty = function (owner, publicName, object) {
 		return unwrapped && unwrapped[mappingProperty];
 	}
 
-	ko.mapping.fromJS = function (jsObject, inputOptions, target) {
+	ko.mapping.fromJS = function (jsObject/*, inputOptions, target*/) {
 		if (arguments.length == 0) throw new Error("When calling ko.fromJS, pass the object you want to convert.");
 
 		var options;
+        var target;
+
+        if (arguments.length == 2) {
+            if (arguments[1][mappingProperty]) {
+                target = arguments[1];
+            } else {
+                options = arguments[1];
+            }
+        }
+        if (arguments.length == 3) {
+            options = arguments[1];
+            target = arguments[2];
+        }
+
 		if (target) {
-			options = merge(inputOptions, target[mappingProperty]);
-		} else {
-			options = inputOptions;
+			options = merge(options, target[mappingProperty]);
 		}
 		options = fillOptions(options);
 
@@ -74,9 +86,10 @@ ko.exportProperty = function (owner, publicName, object) {
 		return result;
 	};
 
-	ko.mapping.fromJSON = function (jsonString, options, target) {
+	ko.mapping.fromJSON = function (jsonString/*, options, target*/) {
 		var parsed = ko.utils.parseJson(jsonString);
-		return ko.mapping.fromJS(parsed, options, target);
+        arguments[0] = parsed;
+		return ko.mapping.fromJS.apply(this, arguments);
 	};
 	
 	ko.mapping.updateFromJS = function (viewModel) {
@@ -167,6 +180,8 @@ ko.exportProperty = function (owner, publicName, object) {
 		return a.concat(b);
 	}
 
+    // When using a 'create' callback, we proxy the dependent observable so that it doesn't immediately evaluate on creation.
+    // The reason is that the dependent observables in the user-specified callback may contain references to properties that have not been mapped yet.
 	function withProxyDependentObservable(callback) {
 		var localDO = ko.dependentObservable;
 		ko.dependentObservable = function() {
@@ -191,13 +206,40 @@ ko.exportProperty = function (owner, publicName, object) {
 			var previousMapping = ko.utils.unwrapObservable(mappedRootObject)[mappingProperty];
 			options = merge(previousMapping, options);
 		}
-		
-		var hasCreateCallback = function () {
-			return options[parentName] && options[parentName].create instanceof Function;
-		}
 
-		var hasUpdateCallback = function () {
-			return options[parentName] && options[parentName].update instanceof Function;
+        var callbackParams = {
+            data: rootObject,
+            parent: parent
+        };
+
+        var hasCreateCallback = function() {
+            return options[parentName] && options[parentName].create instanceof Function;
+        };
+
+		var createCallback = function (data) {
+            return withProxyDependentObservable(function() {
+                return options[parentName].create({
+                    data: data || callbackParams.data,
+                    parent: callbackParams.parent
+                });
+            });
+		};
+
+        var hasUpdateCallback = function() {
+            return options[parentName] && options[parentName].update instanceof Function;
+        };
+
+		var updateCallback = function (obj) {
+            var params = {
+                data: callbackParams.data,
+                parent: callbackParams.parent
+            };
+
+            if (ko.isWriteableObservable(obj)) {
+                params.observable = obj;
+            }
+
+            return options[parentName].update(ko.utils.unwrapObservable(obj), params);
 		}
 
 		visitedObjects = visitedObjects || new objectLookup();
@@ -215,24 +257,20 @@ ko.exportProperty = function (owner, publicName, object) {
 				default:
 					if (ko.isWriteableObservable(mappedRootObject)) {
 						if (hasUpdateCallback()) {
-							mappedRootObject(options[parentName].update(ko.utils.unwrapObservable(mappedRootObject), {
-								data: rootObject,
-								parent: parent
-							}));
+							mappedRootObject(updateCallback(mappedRootObject));
 						} else {
 							mappedRootObject(ko.utils.unwrapObservable(rootObject));
 						}
 					} else {
 						if (hasCreateCallback()) {
-							mappedRootObject = withProxyDependentObservable(function() {
-								return options[parentName].create({
-									data: rootObject,
-									parent: parent
-								});
-							});
+							mappedRootObject = createCallback();
 						} else {
 							mappedRootObject = ko.observable(ko.utils.unwrapObservable(rootObject));
 						}
+
+                        if (hasUpdateCallback()) {
+                            mappedRootObject(updateCallback(mappedRootObject));
+                        }
 					}
 					break;
 				}
@@ -240,14 +278,12 @@ ko.exportProperty = function (owner, publicName, object) {
 			} else {
 				if (!mappedRootObject) {
 					if (hasCreateCallback()) {
-						// When using a 'create' callback, we proxy the dependent observable so that it doesn't immediately evaluate on creation.
-						// The reason is that the dependent observables in the user-specified callback may contain references to properties that have not been mapped yet.
-						var result = withProxyDependentObservable(function() {
-							return options[parentName].create({
-								data: rootObject,
-								parent: parent
-							});
-						});
+						var result = createCallback();
+
+                        if (hasUpdateCallback()) {
+                            result = updateCallback(result);
+                        }
+
 						return result;
 					} else {
 						mappedRootObject = {};
@@ -255,10 +291,7 @@ ko.exportProperty = function (owner, publicName, object) {
 				}
 				
 				if (hasUpdateCallback()) {
-					return options[parentName].update(ko.utils.unwrapObservable(mappedRootObject), {
-						data: rootObject,
-						parent: parent
-					});
+                    updateCallback(mappedRootObject);
 				}
 				mappedRootObject = ko.utils.unwrapObservable(mappedRootObject);
 
@@ -277,27 +310,17 @@ ko.exportProperty = function (owner, publicName, object) {
 						return;
 					}
 
-					var mappedProperty;
-
+                    // In case we are adding an already mapped property, fill it with the previously mapped property value to prevent recursion.
+                    // If this is a property that was generated by fromJS, we should use the options specified there
 					var prevMappedProperty = visitedObjects.get(rootObject[indexer]);
-					if (prevMappedProperty) {
-						// In case we are adding an already mapped property, fill it with the previously mapped property value to prevent recursion.
-						if (ko.isWriteableObservable(mappedRootObject[indexer])) {
-							mappedRootObject[indexer](prevMappedProperty);
-						} else {
-							mappedRootObject[indexer] = prevMappedProperty;
-						}
-					} else {
-						// If this is a property that was generated by fromJS, we should use the options specified there
-						if (ko.isWriteableObservable(mappedRootObject[indexer])) {
-							var val = updateViewModel(mappedRootObject[indexer](), rootObject[indexer], options, visitedObjects, indexer, mappedRootObject, fullPropertyName);
-							mappedRootObject[indexer](ko.utils.unwrapObservable(val));
-						} else {
-							var val = updateViewModel(mappedRootObject[indexer], rootObject[indexer], options, visitedObjects, indexer, mappedRootObject, fullPropertyName);
-							mappedRootObject[indexer] = val;
-						}
-					}
-					
+                    var value = prevMappedProperty || updateViewModel(ko.utils.unwrapObservable(mappedRootObject[indexer]), rootObject[indexer], options, visitedObjects, indexer, mappedRootObject, fullPropertyName);
+
+                    if (ko.isWriteableObservable(mappedRootObject[indexer])) {
+                        mappedRootObject[indexer](ko.utils.unwrapObservable(value));
+                    } else {
+                        mappedRootObject[indexer] = value;
+                    }
+
 					options.mappedProperties[fullPropertyName] = true;
 				});
 			}
@@ -331,8 +354,8 @@ ko.exportProperty = function (owner, publicName, object) {
 
             if (hasUpdateCallback()) {
 				updateCallBack = function(item) {
-                    return options[parentName].update(ko.uitls.unwrapObservable(item), {
-						data: value,
+                    return options[parentName].update(ko.utils.unwrapObservable(item), {
+						data: ko.utils.unwrapObservable(item),
 						parent: parent
 					});
                 }
@@ -376,15 +399,20 @@ ko.exportProperty = function (owner, publicName, object) {
 					return ko.utils.arrayIndexOf(keys, key);
 				}
 				
-				 mappedRootObject.mappedCreate = function(value){                    
+				mappedRootObject.mappedCreate = function(value){
                     if (mappedRootObject.mappedIndexOf(value) !== -1) {
 						throw new Error("There already is an object with the key that you specified.");
 					}
-					
-					var item = createCallBack(value);
-					if (ko.isWriteableObservable(item)) {
-						item(updateCallBack(item));
-					}
+
+					var item = createCallback(value);
+                    if (hasUpdateCallback()) {
+                        var newValue = updateCallback(item);
+                        if (ko.isWriteableObservable(item)) {
+                            item(newValue);
+                        } else {
+                            item = newValue;
+                        }
+                    }
                     mappedRootObject.push(item);
 					return item;
                 }
@@ -446,7 +474,7 @@ ko.exportProperty = function (owner, publicName, object) {
 	function ignorableIndexOf(array, item, ignoreIndices) {
         for (var i = 0, j = array.length; i < j; i++) {
 			if (ignoreIndices[i] === true) continue;
-			if (array[i] == item) return i;
+			if (array[i] === item) return i;
 		}
 		return null;
 	}
@@ -492,7 +520,7 @@ ko.exportProperty = function (owner, publicName, object) {
 
 	function canHaveProperties(object) {
 		var type = getType(object);
-		return (type == "object") && (object !== null) && (type !== "undefined");
+		return (type === "object") && (object !== null) && (type !== "undefined");
 	}
 	
 	// Based on the parentName, this creates a fully classified name of a property
