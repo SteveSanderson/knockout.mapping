@@ -675,7 +675,7 @@ describe('Mapping', {
 			a: "a",
 			b: [
 				{ id: 1 },
-				{ id: 2 },
+				{ id: 2 }
 			]
 		};
 		

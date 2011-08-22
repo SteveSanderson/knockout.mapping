@@ -287,7 +287,7 @@ ko.exportProperty = function (owner, publicName, object) {
 				}
 				
 				if (hasUpdateCallback()) {
-                    updateCallback(mappedRootObject);
+                    mappedRootObject = updateCallback(mappedRootObject);
 				}
 				mappedRootObject = ko.utils.unwrapObservable(mappedRootObject);
 
