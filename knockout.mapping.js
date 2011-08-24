@@ -180,10 +180,15 @@ ko.exportProperty = function (owner, publicName, object) {
     // The reason is that the dependent observables in the user-specified callback may contain references to properties that have not been mapped yet.
 	function withProxyDependentObservable(callback) {
 		var localDO = ko.dependentObservable;
-		ko.dependentObservable = function() {
-			var options = arguments[2] || {};
-			options.deferEvaluation = true;
-			var realDependentObservable = new realKoDependentObservable(arguments[0], arguments[1], options);
+		ko.dependentObservable = function(read, owner, options) {
+			options = options || {};
+
+			if (read && typeof read == "object") { // mirrors condition in knockout implementation of DO's
+				options = read;
+			}
+			
+			options.deferEvaluation = true; // will either set for just options, or both read/options.
+			var realDependentObservable = new realKoDependentObservable(read, owner, options);
 			realDependentObservable.__ko_proto__ = realKoDependentObservable;
 			return realDependentObservable;
 		}
