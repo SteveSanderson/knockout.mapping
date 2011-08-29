@@ -56,9 +56,9 @@ ko.exportProperty = function (owner, publicName, object) {
 		return result;
 	};
 
-	ko.mapping.fromJSON = function (jsonString, options) {
+	ko.mapping.fromJSON = function (jsonString, options, target) {
 		var parsed = ko.utils.parseJson(jsonString);
-		return ko.mapping.fromJS(parsed, options);
+		return ko.mapping.fromJS(parsed, options, target);
 	};
 	
 	ko.mapping.isMapped = function(viewModel) {
