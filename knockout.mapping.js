@@ -17,6 +17,7 @@ ko.exportProperty = function (owner, publicName, object) {
 	var realKoDependentObservable = ko.dependentObservable;
 	var mappingNesting = 0;
 	var dependentObservables;
+	var visitedObjects;
 
 	var _defaultOptions = {
 		include: ["_destroy"],
@@ -52,9 +53,13 @@ ko.exportProperty = function (owner, publicName, object) {
 
 	ko.mapping.fromJS = function (jsObject/*, inputOptions, target*/) {
 		if (arguments.length == 0) throw new Error("When calling ko.fromJS, pass the object you want to convert.");
-		
+
+		// When mapping is completed, even with an exception, reset the nesting level
+		window.setTimeout(function() {
+			mappingNesting = 0;
+		}, 0);
+
 		if (!mappingNesting++) {
-			console.log("do");
 			dependentObservables = [];
 			visitedObjects = new objectLookup();
 		}
@@ -111,7 +116,6 @@ ko.exportProperty = function (owner, publicName, object) {
 		throw new Error("ko.mapping.updateFromJS, use ko.mapping.fromJS instead. Please note that the order of parameters is different!");
 	};
 
-	//, jsonString, options
 	ko.mapping.updateFromJSON = function (viewModel) {
 		throw new Error("ko.mapping.updateFromJSON, use ko.mapping.fromJSON instead. Please note that the order of parameters is different!");
 	};
