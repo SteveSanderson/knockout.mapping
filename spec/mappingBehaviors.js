@@ -1,9 +1,5 @@
 module('Mapping');
 
-QUnit.testStart = function() {
-	ko.mapping.resetDefaultOptions();
-};
-
 test('ko.mapping.toJS should unwrap observable values', function () {
 	var atomicValues = ["hello", 123, true, null, undefined,
 	{

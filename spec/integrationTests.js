@@ -1,9 +1,5 @@
 module('Integration tests');
 
-QUnit.testStart = function() {
-	ko.mapping.resetDefaultOptions();
-};
-
 test('Store', function() {
 	function Product(data) {
 		

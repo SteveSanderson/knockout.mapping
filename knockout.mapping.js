@@ -208,28 +208,39 @@ ko.exportProperty = function (owner, publicName, object) {
 
 			var realDeferEvaluation = options.deferEvaluation;
 
-			var isRemoved = false;
-			var wrapRead = function(DO) {
-				return function() {
-					if (!isRemoved) {
-						ko.utils.arrayRemoveItem(dependentObservables, DO);
-						isRemoved = true;
-					}
-					return DO.apply(DO, arguments);
-				};
-			};
-
 			if (read && typeof read == "object") { // mirrors condition in knockout implementation of DO's
 				options = read;
 			}
+
+			var isRemoved = false;
 			
+			// We wrap the original dependent observable so that we can remove it from the 'dependentObservables' list we need to evaluate after mapping has
+			// completed if the user already evaluated the DO themselves in the meantime.
+			var wrap = function(DO) {
+				var wrapped = realKoDependentObservable({
+					read: function() {
+						if (!isRemoved) {
+							ko.utils.arrayRemoveItem(dependentObservables, DO);
+							isRemoved = true;
+						}
+						return DO.apply(DO, arguments);
+					},
+					write: function(val) {
+						return DO(val);
+					},
+					deferEvaluation: true
+				});
+				wrapped.__ko_proto__ = realKoDependentObservable;
+				return wrapped;
+			};
+
 			options.deferEvaluation = true; // will either set for just options, or both read/options.
 			var realDependentObservable = new realKoDependentObservable(read, owner, options);
 			realDependentObservable.__ko_proto__ = realKoDependentObservable;
 			
 			if (!realDeferEvaluation) {
 				dependentObservables.push(realDependentObservable);
-				realDependentObservable = wrapRead(realDependentObservable);
+				realDependentObservable = wrap(realDependentObservable);
 			}
 
 			return realDependentObservable;

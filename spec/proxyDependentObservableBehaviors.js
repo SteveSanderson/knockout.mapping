@@ -1,7 +1,43 @@
 module('ProxyDependentObservable');
 
-QUnit.testStart = function() {
-	ko.mapping.resetDefaultOptions();
+before.push(function() {
+	test = {
+		evaluationCount: 0
+	};
+	test.create = function(createOptions) {
+		var obj = {
+			a: "b"
+		};
+
+		var mapping = {
+			a: {
+				create: function(options) {
+					createOptions = createOptions || {};
+					var mapped = ko.mapping.fromJS(options.data, mapping);
+					
+					var DOdata = function() {
+						test.evaluationCount++;
+						return "test";
+					};
+					if (createOptions.useReadCallback) {
+						DOdata = {
+							read: DOdata
+						};
+					}
+					
+					mapped.DO = ko.dependentObservable(DOdata, mapped, {
+						deferEvaluation: !!createOptions.deferEvaluation
+					});
+					return mapped;
+				}
+			}
+		};
+		
+		return ko.mapping.fromJS(obj, mapping);
+	};
+});
+
+QUnit.testDone = function() {
 };
 
 test('ko.mapping.fromJS should handle interdependent dependent observables in objects', function() {
@@ -153,161 +189,101 @@ test('nested calls to mapping should not revert proxyDependentObservable multipl
 });
 
 asyncTest('undeferred dependentObservables that are NOT used immediately SHOULD be auto-evaluated after mapping', function() {
-	var obj = {
-		a: "b"
-	};
-
-	var evaluationCount = 0;
-	var mapping = {
-		a: {
-			create: function(options) {
-				var mapped = ko.mapping.fromJS(options.data, mapping);
-				mapped.DO = ko.dependentObservable(function() {
-					evaluationCount++;
-				});
-				return mapped;
-			}
-		}
-	};
-	
-	var mapped = ko.mapping.fromJS(obj, mapping);
+	var mapped = test.create();
 	window.setTimeout(function() {
 		start();
-		equal(evaluationCount, 1);
+		equal(test.evaluationCount, 1);
 	}, 0);
 });
 
 asyncTest('undeferred dependentObservables that ARE used immediately should NOT be auto-evaluated after mapping', function() {
-	var obj = {
-		a: "b"
-	};
-
-	var evaluationCount = 0;
-	var mapping = {
-		a: {
-			create: function(options) {
-				var mapped = ko.mapping.fromJS(options.data, mapping);
-				mapped.DO = ko.dependentObservable(function() {
-					evaluationCount++;
-				});
-				return mapped;
-			}
-		}
-	};
-	
-	var mapped = ko.mapping.fromJS(obj, mapping);
-	mapped.a.DO();
+	var mapped = test.create();
+	equal(ko.utils.unwrapObservable(mapped.a.DO), "test");
 	window.setTimeout(function() {
 		start();
-		equal(evaluationCount, 1);
+		equal(test.evaluationCount, 1);
 	}, 0);
 });
 
 asyncTest('deferred dependentObservables should NOT be auto-evaluated after mapping', function() {
-	var obj = {
-		a: "b"
-	};
-
-	var evaluationCount = 0;
-	var mapping = {
-		a: {
-			create: function(options) {
-				var mapped = ko.mapping.fromJS(options.data, mapping);
-				mapped.DO = ko.dependentObservable(function() {
-					evaluationCount++;
-				}, mapped, { deferEvaluation: true });
-				return mapped;
-			}
-		}
-	};
-	
-	var mapped = ko.mapping.fromJS(obj, mapping);
+	var mapped = test.create({ deferEvaluation: true });
 	window.setTimeout(function() {
 		start();
-		equal(evaluationCount, 0);
+		equal(test.evaluationCount, 0);
 	}, 0);
 });
 
 asyncTest('undeferred dependentObservables with read callback that are NOT used immediately SHOULD be auto-evaluated after mapping', function() {
-	var obj = {
-		a: "b"
-	};
-
-	var evaluationCount = 0;
-	var mapping = {
-		a: {
-			create: function(options) {
-				var mapped = ko.mapping.fromJS(options.data, mapping);
-				mapped.DO = ko.dependentObservable({
-					read: function() {
-						evaluationCount++;
-					}
-				});
-				return mapped;
-			}
-		}
-	};
-	
-	var mapped = ko.mapping.fromJS(obj, mapping);
+	var mapped = test.create({ useReadCallback: true });
 	window.setTimeout(function() {
 		start();
-		equal(evaluationCount, 1);
+		equal(test.evaluationCount, 1);
 	}, 0);
 });
 
 asyncTest('undeferred dependentObservables with read callback that ARE used immediately should NOT be auto-evaluated after mapping', function() {
-	var obj = {
-		a: "b"
-	};
-
-	var evaluationCount = 0;
-	var mapping = {
-		a: {
-			create: function(options) {
-				var mapped = ko.mapping.fromJS(options.data, mapping);
-				mapped.DO = ko.dependentObservable({
-					read: function() {
-						evaluationCount++;
-					}
-				});
-				return mapped;
-			}
-		}
-	};
-	
-	var mapped = ko.mapping.fromJS(obj, mapping);
-	mapped.a.DO();
+	var mapped = test.create({ useReadCallback: true });
+	equal(ko.utils.unwrapObservable(mapped.a.DO), "test");
 	window.setTimeout(function() {
 		start();
-		equal(evaluationCount, 1);
+		equal(test.evaluationCount, 1);
 	}, 0);
 });
 
 asyncTest('deferred dependentObservables with read callback should NOT be auto-evaluated after mapping', function() {
+	var mapped = test.create({ deferEvaluation: true, useReadCallback: true });
+	window.setTimeout(function() {
+		start();
+		equal(test.evaluationCount, 0);
+	}, 0);
+});
+
+test('can subscribe to proxy dependentObservable', function() {
+	var mapped = test.create({ deferEvaluation: true, useReadCallback: true });
+	mapped.a.DO.subscribe(function() {
+	});
+});
+
+test('can subscribe to nested proxy dependentObservable', function() {
 	var obj = {
-		a: "b"
+		a: { b: null }
 	};
 
-	var evaluationCount = 0;
+	var DOsubscribedVal;
 	var mapping = {
 		a: {
 			create: function(options) {
-				var mapped = ko.mapping.fromJS(options.data, mapping);
-				mapped.DO = ko.dependentObservable({
-					read: function() {
-						debugger;
-						evaluationCount++;
+				var mappedB = ko.mapping.fromJS(options.data, {
+					create: function(options) {
+						var DOval;
+						
+						var m = {};
+						m.myValue = ko.observable("myValue");
+						m.DO = ko.dependentObservable({
+							read: function() {
+								return DOval;
+							},
+							write: function(val) {
+								DOval = val;
+							}
+						});
+						m.readOnlyDO = ko.dependentObservable(function() {
+							return m.myValue();
+						});
+						return m;
 					}
-				}, mapped, { deferEvaluation: true });
-				return mapped;
+				});
+				mappedB.DO.subscribe(function(val) {
+					DOsubscribedVal = val;
+				});
+				return mappedB;
 			}
 		}
 	};
 	
 	var mapped = ko.mapping.fromJS(obj, mapping);
-	window.setTimeout(function() {
-		start();
-		equal(evaluationCount, 0);
-	}, 0);
+	mapped.a.DO("bob");
+	equal(ko.utils.unwrapObservable(mapped.a.readOnlyDO), "myValue");
+	equal(ko.utils.unwrapObservable(mapped.a.DO), "bob");
+	equal(DOsubscribedVal, "bob");
 });
-
