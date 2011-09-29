@@ -1174,6 +1174,51 @@ test('ko.mapping.fromJS should reuse options that were added in ko.mapping.fromJ
 	equal(model()[0].entries()[0].entries()[0].func(), true);
 });
 
+test('ko.mapping.fromJS should should update observableArray when calling fromJS', function() {
+
+	var data = {
+		serverTime: '2010-01-07',
+		numUsers: 3,
+		items: [{a: 1, b: 2}]
+	}
+
+	var viewModel = ko.mapping.fromJS(data);
+
+	equal(data.items.length, 1);
+	equal(viewModel.items.length, 1);
+});
+
+test('ko.mapping.fromJS should should update observableArray when calling fromJS passing in the view model', function() {
+
+	var viewModel = {
+		serverTime:  ko.observable('2010-01-07'),
+		numUsers: ko.observable(3)
+					};
+
+	//http://knockoutjs.com/examples/simpleList.html
+	viewModel.items = ko.observableArray(["Alpha", "Beta", "Gamma"]);
+
+	equal(viewModel.items.length, 3);
+
+	var emptyViewModel = { };
+
+	//http://knockoutjs.com/examples/simpleList.html
+	emptyViewModel.items = ko.observableArray(["Alpha", "Beta", "Gamma"]);
+
+	equal(emptyViewModel.items.length, 3);
+
+	var newData = {
+		serverTime: '2010-01-07',
+		numUsers: 3,
+		items: ["Alpha"]
+	}
+
+	ko.mapping.fromJS(newData, viewModel);
+
+	equal(newData.items.length, 1);
+	equal(viewModel.items.length, 1);
+});
+
 test('ko.mapping.toJS should not change the mapped object', function() {
 	var obj = {
 		a: "a"
