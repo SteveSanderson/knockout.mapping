@@ -1185,7 +1185,7 @@ test('ko.mapping.fromJS should should update observableArray when calling fromJS
 	var viewModel = ko.mapping.fromJS(data);
 
 	equal(data.items.length, 1);
-	equal(viewModel.items.length, 1);
+	equal(viewModel.items().length, 1);
 });
 
 test('ko.mapping.fromJS should should update observableArray when calling fromJS passing in the view model', function() {
@@ -1195,28 +1195,26 @@ test('ko.mapping.fromJS should should update observableArray when calling fromJS
 		numUsers: ko.observable(3)
 					};
 
-	//http://knockoutjs.com/examples/simpleList.html
 	viewModel.items = ko.observableArray(["Alpha", "Beta", "Gamma"]);
 
-	equal(viewModel.items.length, 3);
+	equal(viewModel.items().length, 3);
 
 	var emptyViewModel = { };
 
-	//http://knockoutjs.com/examples/simpleList.html
 	emptyViewModel.items = ko.observableArray(["Alpha", "Beta", "Gamma"]);
 
-	equal(emptyViewModel.items.length, 3);
+	equal(emptyViewModel.items().length, 3);
 
 	var newData = {
 		serverTime: '2010-01-07',
 		numUsers: 3,
-		items: ["Alpha"]
+		items: ["Alpha 2", "Beta 2"]
 	}
 
 	ko.mapping.fromJS(newData, viewModel);
 
-	equal(newData.items.length, 1);
-	equal(viewModel.items.length, 1);
+	equal(newData.items.length, 2);
+	equal(viewModel.items().length, 2); //should this be 2??
 });
 
 test('ko.mapping.toJS should not change the mapped object', function() {
