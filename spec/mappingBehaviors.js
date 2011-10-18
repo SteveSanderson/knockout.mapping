@@ -642,7 +642,6 @@ test('ko.mapping.fromJS should send parent along to create callback when creatin
 	var result = ko.mapping.fromJS(obj, {
 		"b": {
 			create: function(options) {
-				debugger;
 				equal(ko.isObservable(options.parent), true);
 				equal(options.parent() instanceof Array, true);
 				numCreated++;
