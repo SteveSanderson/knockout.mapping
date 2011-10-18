@@ -29,7 +29,7 @@ ko.exportProperty = function (owner, publicName, object) {
 	function extendObject(destination, source) {
 		for (var key in source) {
 			if (source.hasOwnProperty(key) && source[key]) {
-				if (destination[key] && !(destination[key] instanceof Array)) {
+				if (key && destination[key] && !(destination[key] instanceof Array)) {
 					extendObject(destination[key], source[key]);
 				} else {
 					destination[key] = source[key];

@@ -642,6 +642,7 @@ test('ko.mapping.fromJS should send parent along to create callback when creatin
 	var result = ko.mapping.fromJS(obj, {
 		"b": {
 			create: function(options) {
+				debugger;
 				equal(ko.isObservable(options.parent), true);
 				equal(options.parent() instanceof Array, true);
 				numCreated++;
@@ -1529,7 +1530,6 @@ test('ko.mapping.fromJS should properly map objects that appear in multiple plac
 	var y = { o: obj, x: x };
 
 	var z = ko.mapping.fromJS(y);
-	debugger;
 
 	equal(y.x[0].title, "Lorem ipsum");
 	equal(z.x()[0].title(), "Lorem ipsum");
