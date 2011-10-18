@@ -637,17 +637,18 @@ test('ko.mapping.fromJS should send parent along to create callback when creatin
 			{ id: 2 }
 		]
 	};
+
+	var target = {};
 	
 	var numCreated = 0;
 	var result = ko.mapping.fromJS(obj, {
 		"b": {
 			create: function(options) {
-				equal(ko.isObservable(options.parent), true);
-				equal(options.parent() instanceof Array, true);
+				equal(options.parent, target);
 				numCreated++;
 			}
 		}
-	});
+	}, target);
 	
 	equal(numCreated, 2);
 });

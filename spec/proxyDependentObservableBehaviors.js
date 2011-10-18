@@ -139,6 +139,8 @@ test('ko.mapping.fromJS should handle dependent observables in arrays', function
 	
 	var dependencyInvocations = 0;
 	
+	var target = {};
+
 	var result = ko.mapping.fromJS(obj, {
 		"items": {
 			create: function(options) {
@@ -146,7 +148,7 @@ test('ko.mapping.fromJS should handle dependent observables in arrays', function
 					id: ko.observable(options.data.id),
 					observeParent: ko.dependentObservable(function() {
 						dependencyInvocations++;
-						return options.parent().length;
+						return options.parent.items().length;
 					})
 				}
 			}
