@@ -296,7 +296,10 @@ ko.exportProperty = function (owner, publicName, object) {
 			return options[parentName].update(params);
 		}
 
-		if (visitedObjects.get(rootObject)) return mappedRootObject;
+		var alreadyMapped = visitedObjects.get(rootObject);
+		if (alreadyMapped) {
+			return alreadyMapped;
+		}
 
 		parentName = parentName || "";
 

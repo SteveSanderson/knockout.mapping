@@ -1522,3 +1522,15 @@ test('ko.mapping.fromJS should accept an already mapped object as the second par
 	ko.mapping.fromJS({ a: "b" }, mapped);
 	equal(mapped.a(), "b");
 });
+
+test('ko.mapping.fromJS should properly map objects that appear in multiple places', function() {
+	var obj = { title: "Lorem ipsum" }, obj2 = { title: "Lorem ipsum 2" };
+	var x = [obj,obj2];
+	var y = { o: obj, x: x };
+
+	var z = ko.mapping.fromJS(y);
+	debugger;
+
+	equal(y.x[0].title, "Lorem ipsum");
+	equal(z.x()[0].title(), "Lorem ipsum");
+});
