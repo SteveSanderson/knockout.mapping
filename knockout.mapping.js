@@ -481,7 +481,11 @@ ko.exportProperty = function (owner, publicName, object) {
 				switch (key.status) {
 				case "added":
 					var item = getItemByKey(ko.utils.unwrapObservable(rootObject), key.value, keyCallback);
-					mappedItem = ko.utils.unwrapObservable(updateViewModel(undefined, item, options, parentName, mappedRootObject, fullPropertyName));
+					mappedItem = updateViewModel(undefined, item, options, parentName, mappedRootObject, fullPropertyName);
+                    			var unwrap = ko.utils.unwrapObservable(mappedItem);
+                    			if(unwrap instanceof Object) {
+                     				mappedItem = unwrap;
+                    			}
 
 					var index = ignorableIndexOf(ko.utils.unwrapObservable(rootObject), item, ignoreIndexOf);
 					newContents[index] = mappedItem;
