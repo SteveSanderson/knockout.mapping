@@ -244,8 +244,10 @@ ko.exportProperty = function (owner, publicName, object) {
 
 			return realDependentObservable;
 		}
+		ko.computed = ko.dependentObservable;
 		var result = callback();
 		ko.dependentObservable = localDO;
+		ko.computed = ko.dependentObservable;
 		return result;
 	}
 

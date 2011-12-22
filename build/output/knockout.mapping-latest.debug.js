@@ -1,4 +1,4 @@
-// Knockout Mapping plugin v2.0.2
+// Knockout Mapping plugin v2.0.3
 // (c) 2011 Steven Sanderson, Roy Jacobs - http://knockoutjs.com/
 // License: Ms-Pl (http://www.opensource.org/licenses/ms-pl.html)
 
@@ -248,8 +248,10 @@ ko.exportProperty = function (owner, publicName, object) {
 
 			return realDependentObservable;
 		}
+		ko.computed = ko.dependentObservable;
 		var result = callback();
 		ko.dependentObservable = localDO;
+		ko.computed = ko.dependentObservable;
 		return result;
 	}
 

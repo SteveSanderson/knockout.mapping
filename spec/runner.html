@@ -6,22 +6,29 @@
 	<link rel="stylesheet" href="lib/qunit.css" type="text/css" media="screen">
 	<script type="text/javascript" src="lib/qunit.js"></script>
 	<script type="text/javascript" src="lib/json2.js"></script>
-	<script type="text/javascript" src="http://github.com/SteveSanderson/knockout/raw/master/build/output/knockout-latest.debug.js"></script>
+	<script type="text/javascript" src="https://raw.github.com/SteveSanderson/knockout/master/build/output/knockout-latest.debug.js"></script>
 	<script type="text/javascript" src="../knockout.mapping.js"></script>
 	<script type="text/javascript">
-		before = [];
-		QUnit.testStart = function() {
-			ko.utils.arrayForEach(before, function(f) { f(); });
+		var curModuleName;
+		
+		QUnit.moduleStart = function(module) {
+			curModuleName = module.name;
 		};
-
-		after = [];
-		QUnit.testDone = function() {
-			ko.utils.arrayForEach(after, function(f) { f(); });
+	
+		QUnit.moduleDone = function() {
+			curModuleName = "";
+		};
+	
+		var testStart = [];
+		QUnit.testStart = function() {
+			ko.mapping.resetDefaultOptions();
+			testStart[curModuleName] && testStart[curModuleName]();
 		};
 		
-		before.push(function() {
-			ko.mapping.resetDefaultOptions();
-		});
+		var testDone = [];
+		QUnit.testDone = function(module) {
+			testDone[curModuleName] && testDone[curModuleName]();
+		};
 		</script>
     <script type="text/javascript" src="mappingBehaviors.js"></script>
     <script type="text/javascript" src="proxyDependentObservableBehaviors.js"></script>
