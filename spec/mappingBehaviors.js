@@ -28,15 +28,16 @@ test('ko.mapping.toJS should unwrap observable properties, including nested ones
 });
 
 test('ko.mapping.toJS should unwrap observable arrays and things inside them', function () {
-	var data = ko.observableArray(['a', 1,
+	var data = ko.observableArray(['a', 1, ko.observable('ob'),
 	{
 		someProp: ko.observable('Hey')
 	}]);
 	var result = ko.mapping.toJS(data);
-	equal(result.length, 3);
+	equal(result.length, 4);
 	equal(result[0], 'a');
 	equal(result[1], 1);
-	equal(result[2].someProp, 'Hey');
+	equal(result[2], 'ob');
+	equal(result[3].someProp, 'Hey');
 });
 
 test('ko.mapping.toJS should ignore specified single property', function() {
@@ -410,6 +411,17 @@ test('ko.mapping.fromJS should return an observableArray if you supply an array,
 	equal(result().length, 2);
 	equal(result()[0], "a");
 	equal(result()[1], "b");
+});
+
+test('ko.mapping.fromJS should return an observableArray if you supply an array, and should wrap its entries in observables if so configured', function () {
+	var sampleArray = {array: ["a", "b"]};
+	var result = ko.mapping.fromJS(sampleArray, {observableArrayEntities:['array']});
+	equal(typeof result.array.destroyAll, 'function'); // Just an example of a function on ko.observableArray but not on Array
+	equal(result.array().length, 2);
+	equal(ko.isObservable(result.array()[0]),true);
+	equal(ko.isObservable(result.array()[1]),true);
+	equal(result.array()[0](), "a");
+	equal(result.array()[1](), "b");
 });
 
 test('ko.mapping.fromJS should not return an observable if you supply an object that could have properties', function () {
