@@ -236,7 +236,7 @@ ko.exportProperty = function (owner, publicName, object) {
 				wrapped.__ko_proto__ = realKoDependentObservable;
 				return wrapped;
 			};
-			
+
 			options.deferEvaluation = true; // will either set for just options, or both read/options.
 			var realDependentObservable = new realKoDependentObservable(read, owner, options);
 			realDependentObservable.__ko_proto__ = realKoDependentObservable;
@@ -470,6 +470,8 @@ ko.exportProperty = function (owner, publicName, object) {
 				}
 			}
 
+			var observableArrayEntities = options.observableArrayEntities && ko.utils.arrayIndexOf(options.observableArrayEntities, parentName) != -1;
+
 			var currentArrayKeys = filterArrayByKey(ko.utils.unwrapObservable(mappedRootObject), keyCallback).sort();
 			var newArrayKeys = filterArrayByKey(rootObject, keyCallback);
 			if (hasKeyCallback) newArrayKeys.sort();
@@ -485,7 +487,11 @@ ko.exportProperty = function (owner, publicName, object) {
 				switch (key.status) {
 				case "added":
 					var item = getItemByKey(ko.utils.unwrapObservable(rootObject), key.value, keyCallback);
-					mappedItem = ko.utils.unwrapObservable(updateViewModel(undefined, item, options, parentName, mappedRootObject, fullPropertyName));
+					mappedItem = updateViewModel(undefined, item, options, parentName, mappedRootObject, fullPropertyName);
+		                        var unwrap = ko.utils.unwrapObservable(mappedItem);
+                                        if (unwrap instanceof Object || !observableArrayEntities) {
+                                            mappedItem = unwrap;
+                                        }
 
 					var index = ignorableIndexOf(ko.utils.unwrapObservable(rootObject), item, ignoreIndexOf);
 					newContents[index] = mappedItem;
