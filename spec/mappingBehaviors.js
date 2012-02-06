@@ -412,6 +412,22 @@ test('ko.mapping.fromJS should return an observableArray if you supply an array,
 	equal(result()[1], "b");
 });
 
+test('ko.mapping.fromJS should return an observableArray if you supply an array, and leave entries as observables if there is a create mapping that does that', function () {
+        var sampleArray = {array: ["a", "b"]};
+        var result = ko.mapping.fromJS(sampleArray, {
+                array: {
+                        create: function(options) {
+                                return new ko.observable(options.data);
+                        }
+                }
+        });
+        equal(result.array().length, 2);
+        equal(ko.isObservable(result.array()[0]),true);
+        equal(ko.isObservable(result.array()[1]),true);
+        equal(result.array()[0](), "a");
+        equal(result.array()[1](), "b");
+});
+
 test('ko.mapping.fromJS should not return an observable if you supply an object that could have properties', function () {
 	equal(ko.isObservable(ko.mapping.fromJS({})), false);
 });
