@@ -158,7 +158,7 @@ ko.exportProperty = function (owner, publicName, object) {
 		};
 	};
 
-	function getType(x) {
+	ko.mapping.getType = function(x) {
 		if ((x) && (typeof (x) === "object") && (x.constructor == (new Date).constructor)) return "date";
 		return typeof x;
 	}
@@ -188,11 +188,11 @@ ko.exportProperty = function (owner, publicName, object) {
 
 	function mergeArrays(a, b) {
 		if (!(a instanceof Array)) {
-			if (getType(a) === "undefined") a = [];
+			if (ko.mapping.getType(a) === "undefined") a = [];
 			else a = [a];
 		}
 		if (!(b instanceof Array)) {
-			if (getType(b) === "undefined") b = [];
+			if (ko.mapping.getType(b) === "undefined") b = [];
 			else b = [b];
 		}
 		return a.concat(b);
@@ -308,7 +308,7 @@ ko.exportProperty = function (owner, publicName, object) {
 		if (!isArray) {
 			// For atomic types, do a direct update on the observable
 			if (!canHaveProperties(rootObject)) {
-				switch (getType(rootObject)) {
+				switch (ko.mapping.getType(rootObject)) {
 				case "function":
 					if (hasUpdateCallback()) {
 						if (ko.isWriteableObservable(rootObject)) {
@@ -535,7 +535,7 @@ ko.exportProperty = function (owner, publicName, object) {
 	function mapKey(item, callback) {
 		var mappedItem;
 		if (callback) mappedItem = callback(item);
-		if (getType(mappedItem) === "undefined") mappedItem = item;
+		if (ko.mapping.getType(mappedItem) === "undefined") mappedItem = item;
 
 		return ko.utils.unwrapObservable(mappedItem);
 	}
@@ -572,7 +572,7 @@ ko.exportProperty = function (owner, publicName, object) {
 	};
 
 	function canHaveProperties(object) {
-		var type = getType(object);
+		var type = ko.mapping.getType(object);
 		return (type === "object") && (object !== null) && (type !== "undefined");
 	}
 
@@ -633,11 +633,11 @@ ko.exportProperty = function (owner, publicName, object) {
 			}
 
 			var outputProperty;
-			switch (getType(ko.utils.unwrapObservable(propertyValue))) {
+			switch (ko.mapping.getType(ko.utils.unwrapObservable(propertyValue))) {
 			case "object":
 			case "undefined":
 				var previouslyMappedValue = options.visitedObjects.get(propertyValue);
-				mappedRootObject[indexer] = (getType(previouslyMappedValue) !== "undefined") ? previouslyMappedValue : ko.mapping.visitModel(propertyValue, callback, options);
+				mappedRootObject[indexer] = (ko.mapping.getType(previouslyMappedValue) !== "undefined") ? previouslyMappedValue : ko.mapping.visitModel(propertyValue, callback, options);
 				break;
 			default:
 				mappedRootObject[indexer] = callback(propertyValue, options.parentName);
