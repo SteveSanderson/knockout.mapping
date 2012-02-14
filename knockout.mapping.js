@@ -615,15 +615,21 @@ ko.exportProperty = function (owner, publicName, object) {
 
 		var parentName = options.parentName;
 		visitPropertiesOrArrayEntries(unwrappedRootObject, function (indexer) {
-			if (options.ignore && ko.utils.arrayIndexOf(options.ignore, indexer) != -1) return;
+			var currentOptions = options;
+			var mappingObject = unwrappedRootObject[mappingProperty];
+			if (mappingObject) {
+				currentOptions = fillOptions(mappingObject,options);
+			}
+			
+			if (currentOptions.ignore && ko.utils.arrayIndexOf(currentOptions.ignore, indexer) != -1) return;
 
 			var propertyValue = unwrappedRootObject[indexer];
 			options.parentName = getPropertyName(parentName, unwrappedRootObject, indexer);
 
 			// If we don't want to explicitly copy the unmapped property...
-			if (ko.utils.arrayIndexOf(options.copy, indexer) === -1) {
+			if (ko.utils.arrayIndexOf(currentOptions.copy, indexer) === -1) {
 				// ...find out if it's a property we want to explicitly include
-				if (ko.utils.arrayIndexOf(options.include, indexer) === -1) {
+				if (ko.utils.arrayIndexOf(currentOptions.include, indexer) === -1) {
 					// The mapped properties object contains all the properties that were part of the original object.
 					// If a property does not exist, and it is not because it is part of an array (e.g. "myProp[3]"), then it should not be unmapped.
 					if (unwrappedRootObject[mappingProperty] && unwrappedRootObject[mappingProperty].mappedProperties && !unwrappedRootObject[mappingProperty].mappedProperties[indexer] && !(unwrappedRootObject instanceof Array)) {
