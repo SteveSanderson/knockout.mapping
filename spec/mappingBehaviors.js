@@ -1549,3 +1549,43 @@ test('ko.mapping.fromJS should properly map objects that appear in multiple plac
 	equal(y.x[0].title, "Lorem ipsum");
 	equal(z.x()[0].title(), "Lorem ipsum");
 });
+
+test('ko.mapping.fromJS should honor inner mapping copy options', function() {
+	var obj = { title: "Lorem ipsum",
+				items: [{soup:1,bread:2}]};
+	
+	var mapping = {
+		items: {
+				create: function(options) {
+					return ko.mapping.fromJS(options.data,{copy:['soup']});
+				}
+			}
+		}
+	a = ko.mapping.fromJS(obj,mapping);
+	b = ko.mapping.toJS(a);
+	equal(a.items()[0].soup,1);
+	equal(a.items()[0].bread(),2);
+	equal(b.items[0].soup,1);
+	equal(b.items[0].bread,2);
+});
+
+test('ko.mapping.fromJS should honor inner mapping ignore options', function() {
+	var obj = { title: "Lorem ipsum",
+				items: [{soup:1,bread:2}]};
+	
+	var mapping = {
+		items: {
+				create: function(options) {
+					return ko.mapping.fromJS(options.data,{ignore:['soup']});
+				}
+			}
+		}
+	a = ko.mapping.fromJS(obj,mapping);
+	b = ko.mapping.toJS(a);
+	equal(a.items()[0].soup,undefined);
+	equal(a.items()[0].bread(),2);
+	equal(b.items[0].soup,undefined);
+	equal(b.items[0].bread,2);
+});
+
+
