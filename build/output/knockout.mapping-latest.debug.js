@@ -1,6 +1,6 @@
-// Knockout Mapping plugin v2.0.3
+// Knockout Mapping plugin v2.0.4
 // (c) 2011 Steven Sanderson, Roy Jacobs - http://knockoutjs.com/
-// License: Ms-Pl (http://www.opensource.org/licenses/ms-pl.html)
+// License: MIT (http://www.opensource.org/licenses/mit-license.php)
 
 // Google Closure Compiler helpers (used only to make the minified file smaller)
 ko.exportSymbol = function (publicPath, object) {
@@ -162,7 +162,7 @@ ko.exportProperty = function (owner, publicName, object) {
 		};
 	};
 
-	function getType(x) {
+	ko.mapping.getType = function(x) {
 		if ((x) && (typeof (x) === "object") && (x.constructor == (new Date).constructor)) return "date";
 		return typeof x;
 	}
@@ -192,11 +192,11 @@ ko.exportProperty = function (owner, publicName, object) {
 
 	function mergeArrays(a, b) {
 		if (!(a instanceof Array)) {
-			if (getType(a) === "undefined") a = [];
+			if (ko.mapping.getType(a) === "undefined") a = [];
 			else a = [a];
 		}
 		if (!(b instanceof Array)) {
-			if (getType(b) === "undefined") b = [];
+			if (ko.mapping.getType(b) === "undefined") b = [];
 			else b = [b];
 		}
 		return a.concat(b);
@@ -312,7 +312,7 @@ ko.exportProperty = function (owner, publicName, object) {
 		if (!isArray) {
 			// For atomic types, do a direct update on the observable
 			if (!canHaveProperties(rootObject)) {
-				switch (getType(rootObject)) {
+				switch (ko.mapping.getType(rootObject)) {
 				case "function":
 					if (hasUpdateCallback()) {
 						if (ko.isWriteableObservable(rootObject)) {
@@ -487,7 +487,10 @@ ko.exportProperty = function (owner, publicName, object) {
 				switch (key.status) {
 				case "added":
 					var item = getItemByKey(ko.utils.unwrapObservable(rootObject), key.value, keyCallback);
-					mappedItem = ko.utils.unwrapObservable(updateViewModel(undefined, item, options, parentName, mappedRootObject, fullPropertyName));
+					mappedItem = updateViewModel(undefined, item, options, parentName, mappedRootObject, fullPropertyName);
+					if(!hasCreateCallback()) {
+						mappedItem = ko.utils.unwrapObservable(mappedItem);
+					}
 
 					var index = ignorableIndexOf(ko.utils.unwrapObservable(rootObject), item, ignoreIndexOf);
 					newContents[index] = mappedItem;
@@ -536,7 +539,7 @@ ko.exportProperty = function (owner, publicName, object) {
 	function mapKey(item, callback) {
 		var mappedItem;
 		if (callback) mappedItem = callback(item);
-		if (getType(mappedItem) === "undefined") mappedItem = item;
+		if (ko.mapping.getType(mappedItem) === "undefined") mappedItem = item;
 
 		return ko.utils.unwrapObservable(mappedItem);
 	}
@@ -573,7 +576,7 @@ ko.exportProperty = function (owner, publicName, object) {
 	};
 
 	function canHaveProperties(object) {
-		var type = getType(object);
+		var type = ko.mapping.getType(object);
 		return (type === "object") && (object !== null) && (type !== "undefined");
 	}
 
@@ -616,15 +619,21 @@ ko.exportProperty = function (owner, publicName, object) {
 
 		var parentName = options.parentName;
 		visitPropertiesOrArrayEntries(unwrappedRootObject, function (indexer) {
-			if (options.ignore && ko.utils.arrayIndexOf(options.ignore, indexer) != -1) return;
+			var currentOptions = options;
+			var mappingObject = unwrappedRootObject[mappingProperty];
+			if (mappingObject) {
+				currentOptions = fillOptions(mappingObject,options);
+			}
+			
+			if (currentOptions.ignore && ko.utils.arrayIndexOf(currentOptions.ignore, indexer) != -1) return;
 
 			var propertyValue = unwrappedRootObject[indexer];
 			options.parentName = getPropertyName(parentName, unwrappedRootObject, indexer);
 
 			// If we don't want to explicitly copy the unmapped property...
-			if (ko.utils.arrayIndexOf(options.copy, indexer) === -1) {
+			if (ko.utils.arrayIndexOf(currentOptions.copy, indexer) === -1) {
 				// ...find out if it's a property we want to explicitly include
-				if (ko.utils.arrayIndexOf(options.include, indexer) === -1) {
+				if (ko.utils.arrayIndexOf(currentOptions.include, indexer) === -1) {
 					// The mapped properties object contains all the properties that were part of the original object.
 					// If a property does not exist, and it is not because it is part of an array (e.g. "myProp[3]"), then it should not be unmapped.
 					if (unwrappedRootObject[mappingProperty] && unwrappedRootObject[mappingProperty].mappedProperties && !unwrappedRootObject[mappingProperty].mappedProperties[indexer] && !(unwrappedRootObject instanceof Array)) {
@@ -634,11 +643,11 @@ ko.exportProperty = function (owner, publicName, object) {
 			}
 
 			var outputProperty;
-			switch (getType(ko.utils.unwrapObservable(propertyValue))) {
+			switch (ko.mapping.getType(ko.utils.unwrapObservable(propertyValue))) {
 			case "object":
 			case "undefined":
 				var previouslyMappedValue = options.visitedObjects.get(propertyValue);
-				mappedRootObject[indexer] = (getType(previouslyMappedValue) !== "undefined") ? previouslyMappedValue : ko.mapping.visitModel(propertyValue, callback, options);
+				mappedRootObject[indexer] = (ko.mapping.getType(previouslyMappedValue) !== "undefined") ? previouslyMappedValue : ko.mapping.visitModel(propertyValue, callback, options);
 				break;
 			default:
 				mappedRootObject[indexer] = callback(propertyValue, options.parentName);
