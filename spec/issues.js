@@ -117,7 +117,7 @@ test('Issue #61', function() {
     equal(personJS.fullName, undefined);
     equal(personJS.address.fullStreet, undefined);
 });
-​
+
 test('Issue #62 - A', function() {
     var mapped = ko.mapping.fromJS([{
             id: "A",
