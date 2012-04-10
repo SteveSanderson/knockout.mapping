@@ -1549,3 +1549,15 @@ test('ko.mapping.fromJS should properly map objects that appear in multiple plac
 	equal(y.x[0].title, "Lorem ipsum");
 	equal(z.x()[0].title(), "Lorem ipsum");
 });
+
+test('ko.mapping.visitModel on a regular object', function() {
+	deepEqual(ko.mapping.visitModel({
+		id: "A",
+		value: ko.observable(0)
+	}, function (x) {
+		return ko.utils.unwrapObservable(x);
+	}), {
+		id: "A",
+		value: 0
+	});
+});
