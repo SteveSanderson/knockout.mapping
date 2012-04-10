@@ -591,7 +591,7 @@
 		return propertyName;
 	}
 
-	exports.visitModel = function (rootObject, callback, options, /* intenal */ parentName) {
+	exports.visitModel = function (rootObject, callback, options, /* internal */ parentName) {
 		options = options || {};
 
 		// If nested object was already mapped previously, take the options from it
