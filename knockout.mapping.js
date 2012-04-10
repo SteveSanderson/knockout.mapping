@@ -107,7 +107,7 @@
 		options = mergeOptions(rootObject[mappingProperty], options);
 
 		// We just unwrap everything at every level in the object graph
-		return exports.visitModel(rootObject, function (x) {
+		return visitModel(rootObject, function (x) {
 			return ko.utils.unwrapObservable(x)
 		}, options);
 	};
@@ -115,6 +115,14 @@
 	exports.toJSON = function (rootObject, options) {
 		var plainJavaScriptObject = exports.toJS(rootObject, options);
 		return ko.utils.stringifyJson(plainJavaScriptObject);
+	};
+
+	exports.visitModel = function (rootObject, callback, options) {
+		if (arguments.length == 0) throw new Error("When calling ko.mapping.visitModel, pass the object you want to visit.");
+		// Merge in the options used in fromJS
+		options = mergeOptions(rootObject[mappingProperty], options);
+
+		return visitModel(rootObject, callback, options);
 	};
 
 	exports.defaultOptions = function () {
@@ -591,9 +599,7 @@
 		return propertyName;
 	}
 
-	exports.visitModel = function (rootObject, callback, options, /* internal */ parentName) {
-		options = options || {};
-
+	function visitModel(rootObject, callback, options, parentName) {
 		// If nested object was already mapped previously, take the options from it
 		if (parentName !== undefined && exports.isMapped(rootObject)) {
 			options = ko.utils.unwrapObservable(rootObject)[mappingProperty];
@@ -642,7 +648,7 @@
 			case "array":
 			case "undefined":
 				var previouslyMappedValue = visitedObjects.get(propertyValue);
-				mappedRootObject[indexer] = (exports.getType(previouslyMappedValue) !== "undefined") ? previouslyMappedValue : exports.visitModel(propertyValue, callback, options, fullPropertyName);
+				mappedRootObject[indexer] = (exports.getType(previouslyMappedValue) !== "undefined") ? previouslyMappedValue : visitModel(propertyValue, callback, options, fullPropertyName);
 				break;
 			default:
 				mappedRootObject[indexer] = callback(propertyValue, parentName);
