@@ -1561,3 +1561,27 @@ test('ko.mapping.visitModel on a regular object', function() {
 		value: 0
 	});
 });
+
+test('ko.mapping.fromJS should translate property names', function() {
+
+  var target = {
+    id: ko.observable(),
+    title: ko.observable(),
+    items: ko.observableArray(),
+    child: {
+      a: ko.observable(),
+      b: ''
+    }
+  };
+
+  var obj = { Id: 1, Title: "Lorem ipsum", Items: [ 1, 2, 3 ], Child: { A: 'a', B: 'b'} };
+
+  ko.mapping.fromJS(obj, { propertyNameTranslator: function(name) { return name[0].toLowerCase() + name.slice(1); }}, target);
+
+  equal(obj.Id, target.id());
+  equal(obj.Title, target.title());
+  equal(obj.Items.length, target.items().length);
+  equal(obj.Child.A, target.child.a());
+  equal(obj.Child.B, target.child.b());  // Knockout promotes this to an observable!!!
+});
+
