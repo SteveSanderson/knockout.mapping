@@ -1588,7 +1588,6 @@ test('ko.mapping.visitModel on a nested mapped object', function() {
 	var expectedParentIndex = 0;
 
 	deepEqual(ko.mapping.visitModel(mapped, function (x, parentName) {
-		console.log(parentName, "versus", expectedParents[expectedParentIndex], ko.utils.unwrapObservable(x));
 		equal(parentName, expectedParents[expectedParentIndex++]);
 		return ko.utils.unwrapObservable(x);
 	}), {
