@@ -1597,3 +1597,20 @@ test('ko.mapping.visitModel on a nested mapped object', function() {
 		]
 	});
 });
+
+test('ko.mapping.toJS should merge nested includes in an array', function() {
+	var data = {
+		a: [ { b: "b1" } ]
+	};
+	
+	var fromJS = ko.mapping.fromJS(data, {
+		a: {
+			create: function(options) {
+				return ko.mapping.fromJS(options.data);
+			}
+		}
+	});
+	fromJS.a()[0].c = ko.observableArray(["c1"]);
+	var result = ko.mapping.toJS(fromJS, { include: "c" });
+	equal(result.a[0].c[0], "c1");
+});

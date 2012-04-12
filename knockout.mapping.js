@@ -600,6 +600,7 @@
 	}
 
 	function visitModel(rootObject, callback, options, parentName, fullParentName) {
+		debugger;
 		// If nested object was already mapped previously, take the options from it
 		if (parentName !== undefined && exports.isMapped(rootObject)) {
 			options = ko.utils.unwrapObservable(rootObject)[mappingProperty];
