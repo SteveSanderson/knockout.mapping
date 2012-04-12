@@ -1561,3 +1561,40 @@ test('ko.mapping.visitModel on a regular object', function() {
 		value: 0
 	});
 });
+
+test('ko.mapping.visitModel on a nested mapped object', function() {
+	var obj = {
+		parts: [
+			{ segments: [{ a: 1 }] },
+			{ segments: [{ a: 2 }] }
+		]
+	};
+	
+	var mapped = ko.mapping.fromJS(obj, {
+		parts: {
+			create: function(options) {
+				return ko.mapping.fromJS(options.data, {
+					segments: {
+						create: function(options) {
+							return ko.mapping.fromJS(options.data);
+						}
+					}
+				});
+			}
+		}
+	});
+	
+	var expectedParents = [undefined, "parts", "parts[0]", "parts[0].segments", "parts[0].segments[0]", "parts[0].segments[0].a", "parts[1]", "parts[1].segments", "parts[1].segments[0]", "parts[1].segments[0].a"];
+	var expectedParentIndex = 0;
+
+	deepEqual(ko.mapping.visitModel(mapped, function (x, parentName) {
+		console.log(parentName, "versus", expectedParents[expectedParentIndex], ko.utils.unwrapObservable(x));
+		equal(parentName, expectedParents[expectedParentIndex++]);
+		return ko.utils.unwrapObservable(x);
+	}), {
+		parts: [
+			{ segments: [{ a: 1 }] },
+			{ segments: [{ a: 2 }] }
+		]
+	});
+});

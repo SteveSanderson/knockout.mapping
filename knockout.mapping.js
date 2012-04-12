@@ -599,7 +599,9 @@
 		return propertyName;
 	}
 
-	function visitModel(rootObject, callback, options, parentName) {
+	function visitModel(rootObject, callback, options, parentName, fullParentName) {
+		console.log("VISITING", fullParentName);
+	
 		// If nested object was already mapped previously, take the options from it
 		if (parentName !== undefined && exports.isMapped(rootObject)) {
 			options = ko.utils.unwrapObservable(rootObject)[mappingProperty];
@@ -615,21 +617,22 @@
 		var mappedRootObject;
 		var unwrappedRootObject = ko.utils.unwrapObservable(rootObject);
 		if (!canHaveProperties(unwrappedRootObject)) {
-			return callback(rootObject, parentName);
+			return callback(rootObject, fullParentName);
 		} else {
 			// Only do a callback, but ignore the results
-			callback(rootObject, parentName);
+			callback(rootObject, fullParentName);
 			mappedRootObject = unwrappedRootObject instanceof Array ? [] : {};
 		}
 
 		visitedObjects.save(rootObject, mappedRootObject);
 
+		var origFullParentName = fullParentName;
 		visitPropertiesOrArrayEntries(unwrappedRootObject, function (indexer) {
 			if (options.ignore && ko.utils.arrayIndexOf(options.ignore, indexer) != -1) return;
 
 			var propertyValue = unwrappedRootObject[indexer];
 			var fullPropertyName = getPropertyName(parentName, unwrappedRootObject, indexer);
-
+			
 			// If we don't want to explicitly copy the unmapped property...
 			if (ko.utils.arrayIndexOf(options.copy, indexer) === -1) {
 				// ...find out if it's a property we want to explicitly include
@@ -642,16 +645,18 @@
 				}
 			}
 
-			var outputProperty;
-			switch (exports.getType(ko.utils.unwrapObservable(propertyValue))) {
+			fullParentName = getPropertyName(origFullParentName, unwrappedRootObject, indexer);
+			
+			var propertyType = exports.getType(ko.utils.unwrapObservable(propertyValue));
+			switch (propertyType) {
 			case "object":
 			case "array":
 			case "undefined":
 				var previouslyMappedValue = visitedObjects.get(propertyValue);
-				mappedRootObject[indexer] = (exports.getType(previouslyMappedValue) !== "undefined") ? previouslyMappedValue : visitModel(propertyValue, callback, options, fullPropertyName);
+				mappedRootObject[indexer] = (exports.getType(previouslyMappedValue) !== "undefined") ? previouslyMappedValue : visitModel(propertyValue, callback, options, fullPropertyName, fullParentName);
 				break;
 			default:
-				mappedRootObject[indexer] = callback(propertyValue, parentName);
+				mappedRootObject[indexer] = callback(propertyValue, fullParentName);
 			}
 		});
 
