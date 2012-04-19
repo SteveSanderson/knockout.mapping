@@ -297,13 +297,11 @@ var generateProxyTests = function(useComputed) {
 	asyncTest('dependentObservable dependencies trigger subscribers', function() {
 		var obj = {
 			inner: {
-				inner2: {
-					dependency: 1
-				}
+				dependency: 1
 			}
 		};
 		
-		var inner2 = function(data) {
+		var inner = function(data) {
 			var _this = this;
 			ko.mapping.fromJS(data, {}, _this);
 			
@@ -317,17 +315,6 @@ var generateProxyTests = function(useComputed) {
 			});
 		};
 		
-		var inner = function(data) {
-			var _this = this;
-			ko.mapping.fromJS(data, {
-				inner2: {
-					create: function(options) {
-						return new inner2(options.data);
-					}
-				}
-			}, _this);
-		};
-		
 		var mapping = {
 			inner: {
 				create: function(options) {
@@ -337,7 +324,7 @@ var generateProxyTests = function(useComputed) {
 		};
 		
 		var mapped = ko.mapping.fromJS(obj, mapping);
-		var i = mapped.inner.inner2;
+		var i = mapped.inner;
 		equal(i.evaluationCount, 0);
 		window.setTimeout(function() {
 			start();
