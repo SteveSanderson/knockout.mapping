@@ -75,9 +75,10 @@
 		// it will be done by this code.
 		if (!--mappingNesting) {
 			window.setTimeout(function () {
-				ko.utils.arrayForEach(dependentObservables, function (DO) {
+				while (dependentObservables.length) {
+					var DO = dependentObservables.pop();
 					if (DO) DO();
-				});
+				}
 			}, 0);
 		}
 
@@ -238,8 +239,8 @@
 			realDependentObservable.__ko_proto__ = realKoDependentObservable;
 
 			if (!realDeferEvaluation) {
-				dependentObservables.push(realDependentObservable);
 				realDependentObservable = wrap(realDependentObservable);
+				dependentObservables.push(realDependentObservable);
 			}
 
 			return realDependentObservable;
