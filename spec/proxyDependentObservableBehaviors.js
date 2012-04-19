@@ -293,6 +293,65 @@ var generateProxyTests = function(useComputed) {
 		equal(ko.utils.unwrapObservable(mapped.a.DO), "bob");
 		equal(DOsubscribedVal, "bob");
 	});
+	
+	asyncTest('dependentObservable dependencies trigger subscribers', function() {
+		var obj = {
+			inner: {
+				inner2: {
+					dependency: 1
+				}
+			}
+		};
+		
+		var inner2 = function(data) {
+			var _this = this;
+			ko.mapping.fromJS(data, {}, _this);
+			
+			_this.DO = func(function() {
+				_this.dependency();
+			});
+
+			_this.evaluationCount = 0;
+			_this.DO.subscribe(function() {
+				_this.evaluationCount++;
+			});
+		};
+		
+		var inner = function(data) {
+			var _this = this;
+			ko.mapping.fromJS(data, {
+				inner2: {
+					create: function(options) {
+						return new inner2(options.data);
+					}
+				}
+			}, _this);
+		};
+		
+		var mapping = {
+			inner: {
+				create: function(options) {
+					return new inner(options.data);
+				}
+			}
+		};
+		
+		var mapped = ko.mapping.fromJS(obj, mapping);
+		var i = mapped.inner.inner2;
+		equal(i.evaluationCount, 0);
+		window.setTimeout(function() {
+			start();
+			
+			// after the timeout, the DO is already evaluated once by the mapping plugin, causing the subscription to update
+			equal(i.evaluationCount, 1);
+			
+			// change the dependency
+			i.dependency(2);
+			
+			// should also have re-evaluated
+			equal(i.evaluationCount, 2);
+		});
+	});
 };
 
 generateProxyTests(false);
