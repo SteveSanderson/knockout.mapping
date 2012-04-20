@@ -170,7 +170,7 @@
 			}
 			for (name in options) {
 				t = target[name]; o = options[name];
-				if (special[name] && type(o) !== "array") {
+				if (name !== "constructor" && special[name] && type(o) !== "array") {
 					if (type(o) !== "string") {
 						throw new Error("ko.mapping.defaultOptions()." + name + " should be an array or string.");
 					}

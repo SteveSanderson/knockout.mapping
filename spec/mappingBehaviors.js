@@ -1614,3 +1614,14 @@ test('ko.mapping.toJS should merge nested includes in an array', function() {
 	var result = ko.mapping.toJS(fromJS, { include: "c" });
 	equal(result.a[0].c[0], "c1");
 });
+
+test('can map objects containing a constructor', function() {
+	var data = {
+		constructor: function() {},
+		a: 1
+	};
+	
+	var mapped = ko.mapping.fromJS(data);
+	var unmapped = ko.mapping.toJS(mapped);
+	equal(unmapped.a, 1);
+});
