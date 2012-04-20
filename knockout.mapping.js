@@ -230,13 +230,11 @@
 					},
 					deferEvaluation: true
 				});
-				wrapped.__ko_proto__ = realKoDependentObservable;
 				return wrapped;
 			};
 			
 			options.deferEvaluation = true; // will either set for just options, or both read/options.
 			var realDependentObservable = new realKoDependentObservable(read, owner, options);
-			realDependentObservable.__ko_proto__ = realKoDependentObservable;
 
 			if (!realDeferEvaluation) {
 				realDependentObservable = wrap(realDependentObservable);
@@ -245,6 +243,7 @@
 
 			return realDependentObservable;
 		}
+		ko.dependentObservable.fn = realKoDependentObservable.fn;
 		ko.computed = ko.dependentObservable;
 		var result = callback();
 		ko.dependentObservable = localDO;

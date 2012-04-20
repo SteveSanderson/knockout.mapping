@@ -339,6 +339,32 @@ var generateProxyTests = function(useComputed) {
 			equal(i.evaluationCount, 2);
 		});
 	});
+	
+	test('dependentObservable.fn extensions are not missing during mapping', function() {
+		var obj = {
+			x: 1
+		};
+
+		var model = function(data) {
+			var _this = this;
+
+			ko.mapping.fromJS(data, {}, _this);
+			
+			_this.DO = func(_this.x);
+		};
+
+		var mapping = {
+			create: function(options) {
+				return new model(options.data);
+			}
+		};
+		
+		ko.dependentObservable.fn.myExtension = true;
+		
+		var mapped = ko.mapping.fromJS(obj, mapping);
+		
+		equal(mapped.DO.myExtension, true)
+	});
 };
 
 generateProxyTests(false);
