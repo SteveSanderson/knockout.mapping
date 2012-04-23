@@ -207,11 +207,11 @@
 		ko.dependentObservable = function (read, owner, options) {
 			options = options || {};
 
-			var realDeferEvaluation = options.deferEvaluation;
-
 			if (read && typeof read == "object") { // mirrors condition in knockout implementation of DO's
 				options = read;
 			}
+
+			var realDeferEvaluation = options.deferEvaluation;
 
 			var isRemoved = false;
 
@@ -231,6 +231,7 @@
 					},
 					deferEvaluation: true
 				});
+				if(DEBUG) wrapped._wrapper = true;
 				return wrapped;
 			};
 			
