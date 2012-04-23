@@ -29,14 +29,17 @@ var generateProxyTests = function(useComputed) {
 							return "test";
 						};
 						if (createOptions.useReadCallback) {
-							DOdata = {
-								read: DOdata
-							};
+							mapped.DO = func({
+								read: DOdata,
+								deferEvaluation: !!createOptions.deferEvaluation
+							}, mapped);
+						}
+						else {
+							mapped.DO = func(DOdata, mapped, {
+								deferEvaluation: !!createOptions.deferEvaluation
+							});
 						}
 						
-						mapped.DO = func(DOdata, mapped, {
-							deferEvaluation: !!createOptions.deferEvaluation
-						});
 						return mapped;
 					}
 				}
@@ -364,6 +367,34 @@ var generateProxyTests = function(useComputed) {
 		var mapped = ko.mapping.fromJS(obj, mapping);
 		
 		equal(mapped.DO.myExtension, true)
+	});
+	
+	test('Dont wrap dependent observables if already marked as deferEvaluation', function() {
+		var obj = {
+			x: 1
+		};
+
+		var model = function(data) {
+			var _this = this;
+
+			ko.mapping.fromJS(data, {}, _this);
+			
+			_this.DO1 = func(_this.x, null, {deferEvaluation: true});
+			_this.DO2 = func({read: _this.x, deferEvaluation: true});
+			_this.DO3 = func(_this.x);
+		};
+
+		var mapping = {
+			create: function(options) {
+				return new model(options.data);
+			}
+		};
+		
+		var mapped = ko.mapping.fromJS(obj, mapping);
+		
+		equal(mapped.DO1._wrapper, undefined);
+		equal(mapped.DO2._wrapper, undefined);
+		equal(mapped.DO3._wrapper, true);
 	});
 };
 
