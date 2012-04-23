@@ -12,6 +12,7 @@
 		factory(ko, ko.mapping = {});
 	}
 }(function (ko, exports) {
+	var DEBUG=true;
 	var mappingProperty = "__ko_mapping__";
 	var realKoDependentObservable = ko.dependentObservable;
 	var mappingNesting = 0;
