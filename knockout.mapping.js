@@ -207,11 +207,11 @@
 		ko.dependentObservable = function (read, owner, options) {
 			options = options || {};
 
-			var realDeferEvaluation = options.deferEvaluation;
-
 			if (read && typeof read == "object") { // mirrors condition in knockout implementation of DO's
 				options = read;
 			}
+
+			var realDeferEvaluation = options.deferEvaluation;
 
 			var isRemoved = false;
 
@@ -231,13 +231,12 @@
 					},
 					deferEvaluation: true
 				});
-				wrapped.__ko_proto__ = realKoDependentObservable;
+				if(DEBUG) wrapped._wrapper = true;
 				return wrapped;
 			};
 			
 			options.deferEvaluation = true; // will either set for just options, or both read/options.
 			var realDependentObservable = new realKoDependentObservable(read, owner, options);
-			realDependentObservable.__ko_proto__ = realKoDependentObservable;
 
 			if (!realDeferEvaluation) {
 				realDependentObservable = wrap(realDependentObservable);
@@ -246,6 +245,7 @@
 
 			return realDependentObservable;
 		}
+		ko.dependentObservable.fn = realKoDependentObservable.fn;
 		ko.computed = ko.dependentObservable;
 		var result = callback();
 		ko.dependentObservable = localDO;
