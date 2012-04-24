@@ -1,4 +1,4 @@
-// Knockout Mapping plugin v2.1.1
+// Knockout Mapping plugin v2.1.2
 // (c) 2012 Steven Sanderson, Roy Jacobs - http://knockoutjs.com/
 // License: MIT (http://www.opensource.org/licenses/mit-license.php)
 
@@ -16,6 +16,7 @@
 		factory(ko, ko.mapping = {});
 	}
 }(function (ko, exports) {
+	var DEBUG=true;
 	var mappingProperty = "__ko_mapping__";
 	var realKoDependentObservable = ko.dependentObservable;
 	var mappingNesting = 0;
@@ -174,7 +175,7 @@
 			}
 			for (name in options) {
 				t = target[name]; o = options[name];
-				if (special[name] && type(o) !== "array") {
+				if (name !== "constructor" && special[name] && type(o) !== "array") {
 					if (type(o) !== "string") {
 						throw new Error("ko.mapping.defaultOptions()." + name + " should be an array or string.");
 					}
@@ -210,11 +211,11 @@
 		ko.dependentObservable = function (read, owner, options) {
 			options = options || {};
 
-			var realDeferEvaluation = options.deferEvaluation;
-
 			if (read && typeof read == "object") { // mirrors condition in knockout implementation of DO's
 				options = read;
 			}
+
+			var realDeferEvaluation = options.deferEvaluation;
 
 			var isRemoved = false;
 
@@ -234,13 +235,12 @@
 					},
 					deferEvaluation: true
 				});
-				wrapped.__ko_proto__ = realKoDependentObservable;
+				if(DEBUG) wrapped._wrapper = true;
 				return wrapped;
 			};
 			
 			options.deferEvaluation = true; // will either set for just options, or both read/options.
 			var realDependentObservable = new realKoDependentObservable(read, owner, options);
-			realDependentObservable.__ko_proto__ = realKoDependentObservable;
 
 			if (!realDeferEvaluation) {
 				realDependentObservable = wrap(realDependentObservable);
@@ -249,6 +249,7 @@
 
 			return realDependentObservable;
 		}
+		ko.dependentObservable.fn = realKoDependentObservable.fn;
 		ko.computed = ko.dependentObservable;
 		var result = callback();
 		ko.dependentObservable = localDO;
