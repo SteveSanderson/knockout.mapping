@@ -1,5 +1,5 @@
-// Knockout Mapping plugin v2.1.0
-// (c) 2011 Steven Sanderson, Roy Jacobs - http://knockoutjs.com/
+// Knockout Mapping plugin v2.1.3
+// (c) 2012 Steven Sanderson, Roy Jacobs - http://knockoutjs.com/
 // License: MIT (http://www.opensource.org/licenses/mit-license.php)
 
 (function (factory) {
@@ -16,6 +16,7 @@
 		factory(ko, ko.mapping = {});
 	}
 }(function (ko, exports) {
+	var DEBUG=true;
 	var mappingProperty = "__ko_mapping__";
 	var realKoDependentObservable = ko.dependentObservable;
 	var mappingNesting = 0;
@@ -97,9 +98,10 @@
 		// it will be done by this code.
 		if (!--mappingNesting) {
 			window.setTimeout(function () {
-				ko.utils.arrayForEach(dependentObservables, function (DO) {
+				while (dependentObservables.length) {
+					var DO = dependentObservables.pop();
 					if (DO) DO();
-				});
+				}
 			}, 0);
 		}
 
@@ -208,11 +210,11 @@
 		ko.dependentObservable = function (read, owner, options) {
 			options = options || {};
 
-			var realDeferEvaluation = options.deferEvaluation;
-
 			if (read && typeof read == "object") { // mirrors condition in knockout implementation of DO's
 				options = read;
 			}
+
+			var realDeferEvaluation = options.deferEvaluation;
 
 			var isRemoved = false;
 
@@ -232,21 +234,21 @@
 					},
 					deferEvaluation: true
 				});
-				wrapped.__ko_proto__ = realKoDependentObservable;
+				if(DEBUG) wrapped._wrapper = true;
 				return wrapped;
 			};
 			
 			options.deferEvaluation = true; // will either set for just options, or both read/options.
 			var realDependentObservable = new realKoDependentObservable(read, owner, options);
-			realDependentObservable.__ko_proto__ = realKoDependentObservable;
 
 			if (!realDeferEvaluation) {
-				dependentObservables.push(realDependentObservable);
 				realDependentObservable = wrap(realDependentObservable);
+				dependentObservables.push(realDependentObservable);
 			}
 
 			return realDependentObservable;
 		}
+		ko.dependentObservable.fn = realKoDependentObservable.fn;
 		ko.computed = ko.dependentObservable;
 		var result = callback();
 		ko.dependentObservable = localDO;
