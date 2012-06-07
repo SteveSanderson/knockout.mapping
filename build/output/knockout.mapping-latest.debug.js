@@ -482,15 +482,30 @@
 			var editScript = ko.utils.compareArrays(currentArrayKeys, newArrayKeys);
 
 			var ignoreIndexOf = {};
+			
+			var i, j;
+
+			var unwrappedRootObject = ko.utils.unwrapObservable(rootObject);
+			var itemsByKey = {};
+			var mappedItemsByKey = {};
+			var optimizedKeys = true;
+			for (i = 0, j = unwrappedRootObject.length; i < j; i++) {
+				var key = keyCallback(unwrappedRootObject[i]);
+				if (key instanceof Object) {
+					optimizedKeys = false;
+					break;
+				}
+				itemsByKey[key] = unwrappedRootObject[i];
+			}
 
 			var newContents = [];
-			for (var i = 0, j = editScript.length; i < j; i++) {
+			for (i = 0, j = editScript.length; i < j; i++) {
 				var key = editScript[i];
 				var mappedItem;
 				var fullPropertyName = parentPropertyName + "[" + i + "]";
 				switch (key.status) {
 				case "added":
-					var item = getItemByKey(ko.utils.unwrapObservable(rootObject), key.value, keyCallback);
+					var item = optimizedKeys ? itemsByKey[key.value] : getItemByKey(ko.utils.unwrapObservable(rootObject), key.value, keyCallback);
 					mappedItem = updateViewModel(undefined, item, options, parentName, mappedRootObject, fullPropertyName);
 					if(!hasCreateCallback()) {
 						mappedItem = ko.utils.unwrapObservable(mappedItem);
@@ -501,7 +516,7 @@
 					ignoreIndexOf[index] = true;
 					break;
 				case "retained":
-					var item = getItemByKey(ko.utils.unwrapObservable(rootObject), key.value, keyCallback);
+					var item = optimizedKeys ? itemsByKey[key.value] : getItemByKey(ko.utils.unwrapObservable(rootObject), key.value, keyCallback);
 					mappedItem = getItemByKey(mappedRootObject, key.value, keyCallback);
 					updateViewModel(mappedItem, item, options, parentName, mappedRootObject, fullPropertyName);
 
@@ -549,14 +564,14 @@
 	}
 
 	function getItemByKey(array, key, callback) {
-		var filtered = ko.utils.arrayFilter(ko.utils.unwrapObservable(array), function (item) {
+		var filtered = ko.utils.arrayFirst(ko.utils.unwrapObservable(array), function (item) {
 			return mapKey(item, callback) === key;
 		});
 
-		if (filtered.length == 0) throw new Error("When calling ko.update*, the key '" + key + "' was not found!");
-		if ((filtered.length > 1) && (canHaveProperties(filtered[0]))) throw new Error("When calling ko.update*, the key '" + key + "' was not unique!");
+		if (filtered === null) throw new Error("When calling ko.update*, the key '" + key + "' was not found!");
+		//if ((filtered.length > 1) && (canHaveProperties(filtered[0]))) throw new Error("When calling ko.update*, the key '" + key + "' was not unique!");
 
-		return filtered[0];
+		return filtered;
 	}
 
 	function filterArrayByKey(array, callback) {
