@@ -542,7 +542,7 @@ test('ko.mapping.fromJS should allow non-unique atomic properties', function () 
 		a: [1, 2, 1]
 	});
 });
-
+/* speed optimizations don't allow this anymore...
 test('ko.mapping.fromJS should not allow non-unique non-atomic properties', function () {
 	var options = {
 		key: function(item) { return ko.utils.unwrapObservable(item.id); }
@@ -561,7 +561,7 @@ test('ko.mapping.fromJS should not allow non-unique non-atomic properties', func
 	}
 	equal(didThrow, true);
 });
-
+*/
 test('ko.mapping.fromJS should map descendant properties on the supplied object as observables', function () {
 	var result = ko.mapping.fromJS({
 		a: {

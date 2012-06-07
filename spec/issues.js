@@ -82,3 +82,17 @@ test('Issue #34', function() {
 	viewModel.load();
 	viewModel.load();
 });
+
+test('Adding large amounts of items to array is slow', function() {
+	var numItems = 5000;
+	var data = [];
+	for (var t=0;t<numItems;t++) {
+		data.push({ id: t });
+	}
+	
+	var mapped = ko.mapping.fromJS(data, {
+		key: function(data) {
+			return ko.utils.unwrapObservable(data).id;
+		}
+	});
+});
