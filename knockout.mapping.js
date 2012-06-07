@@ -29,7 +29,7 @@
 	function extendObject(destination, source) {
 		for (var key in source) {
 			if (source.hasOwnProperty(key) && source[key]) {
-				if (key && destination[key] && !(destination[key] instanceof Array)) {
+				if (key && destination[key] && !(exports.getType(destination[key]) === "array")) {
 					extendObject(destination[key], source[key]);
 				} else {
 					destination[key] = source[key];
@@ -125,9 +125,9 @@
 		if (!defaultOptions) exports.resetDefaultOptions();
 
 		if (arguments.length == 0) throw new Error("When calling ko.mapping.toJS, pass the object you want to convert.");
-		if (!(defaultOptions.ignore instanceof Array)) throw new Error("ko.mapping.defaultOptions().ignore should be an array.");
-		if (!(defaultOptions.include instanceof Array)) throw new Error("ko.mapping.defaultOptions().include should be an array.");
-		if (!(defaultOptions.copy instanceof Array)) throw new Error("ko.mapping.defaultOptions().copy should be an array.");
+		if (exports.getType(defaultOptions.ignore) !== "array") throw new Error("ko.mapping.defaultOptions().ignore should be an array.");
+		if (exports.getType(defaultOptions.include) !== "array") throw new Error("ko.mapping.defaultOptions().include should be an array.");
+		if (exports.getType(defaultOptions.copy) !== "array") throw new Error("ko.mapping.defaultOptions().copy should be an array.");
 
 		// Merge in the options used in fromJS
 		options = fillOptions(options, rootObject[mappingProperty]);
@@ -160,7 +160,10 @@
 	};
 
 	exports.getType = function(x) {
-		if ((x) && (typeof (x) === "object") && (x.constructor == (new Date).constructor)) return "date";
+		if ((x) && (typeof (x) === "object")) {
+			if (x.constructor == (new Date).constructor) return "date";
+			if (Object.prototype.toString.call(x) === "[object Array]") return "array";
+		}
 		return typeof x;
 	}
 
@@ -188,11 +191,11 @@
 	}
 
 	function mergeArrays(a, b) {
-		if (!(a instanceof Array)) {
+		if (exports.getType(a) !== "array") {
 			if (exports.getType(a) === "undefined") a = [];
 			else a = [a];
 		}
-		if (!(b instanceof Array)) {
+		if (exports.getType(b) !== "array") {
 			if (exports.getType(b) === "undefined") b = [];
 			else b = [b];
 		}
@@ -253,7 +256,7 @@
 	}
 
 	function updateViewModel(mappedRootObject, rootObject, options, parentName, parent, parentPropertyName) {
-		var isArray = ko.utils.unwrapObservable(rootObject) instanceof Array;
+		var isArray = exports.getType(ko.utils.unwrapObservable(rootObject)) === "array";
 
 		parentPropertyName = parentPropertyName || "";
 
@@ -563,7 +566,7 @@
 	}
 
 	function visitPropertiesOrArrayEntries(rootObject, visitorCallback) {
-		if (rootObject instanceof Array) {
+		if (exports.getType(rootObject) === "array") {
 			for (var i = 0; i < rootObject.length; i++)
 			visitorCallback(i);
 		} else {
@@ -574,14 +577,14 @@
 
 	function canHaveProperties(object) {
 		var type = exports.getType(object);
-		return (type === "object") && (object !== null) && (type !== "undefined");
+		return ((type === "object") || (type === "array")) && (object !== null);
 	}
 
 	// Based on the parentName, this creates a fully classified name of a property
 
 	function getPropertyName(parentName, parent, indexer) {
 		var propertyName = parentName || "";
-		if (parent instanceof Array) {
+		if (exports.getType(parent) === "array") {
 			if (parentName) {
 				propertyName += "[" + indexer + "]";
 			}
@@ -609,7 +612,7 @@
 		} else {
 			// Only do a callback, but ignore the results
 			callback(rootObject, options.parentName);
-			mappedRootObject = unwrappedRootObject instanceof Array ? [] : {};
+			mappedRootObject = exports.getType(unwrappedRootObject) === "array" ? [] : {};
 		}
 
 		options.visitedObjects.save(rootObject, mappedRootObject);
@@ -627,7 +630,7 @@
 				if (ko.utils.arrayIndexOf(options.include, indexer) === -1) {
 					// The mapped properties object contains all the properties that were part of the original object.
 					// If a property does not exist, and it is not because it is part of an array (e.g. "myProp[3]"), then it should not be unmapped.
-					if (unwrappedRootObject[mappingProperty] && unwrappedRootObject[mappingProperty].mappedProperties && !unwrappedRootObject[mappingProperty].mappedProperties[indexer] && !(unwrappedRootObject instanceof Array)) {
+					if (unwrappedRootObject[mappingProperty] && unwrappedRootObject[mappingProperty].mappedProperties && !unwrappedRootObject[mappingProperty].mappedProperties[indexer] && !(exports.getType(unwrappedRootObject) === "array")) {
 						return;
 					}
 				}
@@ -636,6 +639,7 @@
 			var outputProperty;
 			switch (exports.getType(ko.utils.unwrapObservable(propertyValue))) {
 			case "object":
+			case "array":
 			case "undefined":
 				var previouslyMappedValue = options.visitedObjects.get(propertyValue);
 				mappedRootObject[indexer] = (exports.getType(previouslyMappedValue) !== "undefined") ? previouslyMappedValue : exports.visitModel(propertyValue, callback, options);
