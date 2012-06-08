@@ -1078,14 +1078,6 @@ test('ko.mapping.fromJS should update arrays containing objects', function () {
 	equal(result.a()[1].value(), "a3");
 });
 
-test('ko.mapping.fromJS should escape from reference cycles', function () {
-	var obj = {};
-	obj.owner = obj;
-	var result = ko.mapping.fromJS(obj);
-	ko.mapping.fromJS(obj, {}, result);
-	equal(result.owner, result);
-});
-
 test('ko.mapping.fromJS should send a callback when adding new objects to an array', function () {
 	var obj = [{
 		id: 1

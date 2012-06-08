@@ -667,7 +667,7 @@
 		return mappedRootObject;
 	}
 
-	function objectLookup() {
+	function simpleObjectLookup() {
 		var keys = [];
 		var values = [];
 		this.save = function (key, value) {
@@ -680,7 +680,35 @@
 		};
 		this.get = function (key) {
 			var existingIndex = ko.utils.arrayIndexOf(keys, key);
-			return (existingIndex >= 0) ? values[existingIndex] : undefined;
+			var value = (existingIndex >= 0) ? values[existingIndex] : undefined;
+			return value;
+		};
+	};
+	
+	function objectLookup() {
+		var buckets = {};
+		
+		var findBucket = function(key) {
+			var bucketKey;
+			try {
+				bucketKey = JSON.stringify(key);
+			}
+			catch (e) {
+				bucketKey = "$$$";
+			}
+			var bucket = buckets[bucketKey];
+			if (bucket === undefined) {
+				bucket = new simpleObjectLookup();
+				buckets[bucketKey] = bucket;
+			}
+			return bucket;
+		};
+		
+		this.save = function (key, value) {
+			findBucket(key).save(key, value);
+		};
+		this.get = function (key) {
+			return findBucket(key).get(key);
 		};
 	};
 }));
