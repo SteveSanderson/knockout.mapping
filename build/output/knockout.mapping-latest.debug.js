@@ -1,4 +1,4 @@
-// Knockout Mapping plugin v2.1.4
+// Knockout Mapping plugin v2.2.0
 // (c) 2012 Steven Sanderson, Roy Jacobs - http://knockoutjs.com/
 // License: MIT (http://www.opensource.org/licenses/mit-license.php)
 
@@ -487,11 +487,10 @@
 
 			var unwrappedRootObject = ko.utils.unwrapObservable(rootObject);
 			var itemsByKey = {};
-			var mappedItemsByKey = {};
 			var optimizedKeys = true;
 			for (i = 0, j = unwrappedRootObject.length; i < j; i++) {
 				var key = keyCallback(unwrappedRootObject[i]);
-				if (key instanceof Object) {
+				if (key === undefined || key instanceof Object) {
 					optimizedKeys = false;
 					break;
 				}
@@ -671,7 +670,7 @@
 		return mappedRootObject;
 	}
 
-	function objectLookup() {
+	function simpleObjectLookup() {
 		var keys = [];
 		var values = [];
 		this.save = function (key, value) {
@@ -684,7 +683,35 @@
 		};
 		this.get = function (key) {
 			var existingIndex = ko.utils.arrayIndexOf(keys, key);
-			return (existingIndex >= 0) ? values[existingIndex] : undefined;
+			var value = (existingIndex >= 0) ? values[existingIndex] : undefined;
+			return value;
+		};
+	};
+	
+	function objectLookup() {
+		var buckets = {};
+		
+		var findBucket = function(key) {
+			var bucketKey;
+			try {
+				bucketKey = JSON.stringify(key);
+			}
+			catch (e) {
+				bucketKey = "$$$";
+			}
+			var bucket = buckets[bucketKey];
+			if (bucket === undefined) {
+				bucket = new simpleObjectLookup();
+				buckets[bucketKey] = bucket;
+			}
+			return bucket;
+		};
+		
+		this.save = function (key, value) {
+			findBucket(key).save(key, value);
+		};
+		this.get = function (key) {
+			return findBucket(key).get(key);
 		};
 	};
 }));
