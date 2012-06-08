@@ -483,11 +483,10 @@
 
 			var unwrappedRootObject = ko.utils.unwrapObservable(rootObject);
 			var itemsByKey = {};
-			var mappedItemsByKey = {};
 			var optimizedKeys = true;
 			for (i = 0, j = unwrappedRootObject.length; i < j; i++) {
 				var key = keyCallback(unwrappedRootObject[i]);
-				if (key instanceof Object) {
+				if (key === undefined || key instanceof Object) {
 					optimizedKeys = false;
 					break;
 				}
