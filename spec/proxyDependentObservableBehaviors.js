@@ -418,6 +418,33 @@ var generateProxyTests = function(useComputed) {
 		equal(mapped.DO2._wrapper, undefined);
 		equal(mapped.DO3._wrapper, true);
 	});
+	
+	test('ko.mapping.updateViewModel should allow for the avoidance of adding an item to its parent observableArray', function() {
+		var obj = {
+			items: [
+				{ id: "a" },
+				{ id: "b" }
+			]
+		}
+		
+		var dependencyInvocations = 0;
+		
+		var result = ko.mapping.fromJS(obj, {
+			"items": {
+				create: function(options) {
+					if (options.data.id == "b")
+						return options.data;
+					else 
+						return options.passOver;
+				}
+			}
+		});
+		
+		
+		equal(result.items().length, 1);
+		equal(result.items()[0].id, "b");
+		
+	});
 };
 
 generateProxyTests(false);

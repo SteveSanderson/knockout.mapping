@@ -18,7 +18,11 @@
 	var mappingNesting = 0;
 	var dependentObservables;
 	var visitedObjects;
+<<<<<<< HEAD
 	var recognizedRootProperties = ['create', 'update', 'key', 'arrayChanged'];
+=======
+	var emptyReturn = {};
+>>>>>>> added passedOver option to create property function options argument, allowing the returned value to be omitted from the mapped array
 
 	var _defaultOptions = {
 		include: ["_destroy"],
@@ -285,10 +289,27 @@
 
 		var createCallback = function (data) {
 			return withProxyDependentObservable(dependentObservables, function () {
+<<<<<<< HEAD
 				return options[parentName].create({
 					data: data || callbackParams.data,
 					parent: callbackParams.parent
 				});
+=======
+				
+				if (ko.utils.unwrapObservable(parent) instanceof Array) {
+					return getCallback("create")({
+						data: data || callbackParams.data,
+						parent: callbackParams.parent,
+						passOver: emptyReturn
+					});
+				} else {
+					return getCallback("create")({
+						data: data || callbackParams.data,
+						parent: callbackParams.parent,
+					});
+				}
+				
+>>>>>>> added passedOver option to create property function options argument, allowing the returned value to be omitted from the mapped array
 			});
 		};
 
@@ -407,7 +428,7 @@
 					options.mappedProperties[fullPropertyName] = true;
 				});
 			}
-		} else {
+		} else { //mappedRootObject is an array
 			var changes = [];
 
 			var hasKeyCallback = false;
@@ -502,7 +523,12 @@
 			}
 
 			var newContents = [];
+<<<<<<< HEAD
 			for (i = 0, j = editScript.length; i < j; i++) {
+=======
+			var passedOver = 0;
+			for (var i = 0, j = editScript.length; i < j; i++) {
+>>>>>>> added passedOver option to create property function options argument, allowing the returned value to be omitted from the mapped array
 				var key = editScript[i];
 				var mappedItem;
 				var fullPropertyName = parentPropertyName + "[" + i + "]";
@@ -515,7 +541,15 @@
 					}
 
 					var index = ignorableIndexOf(ko.utils.unwrapObservable(rootObject), item, ignoreIndexOf);
-					newContents[index] = mappedItem;
+					
+					if (mappedItem === emptyReturn) {
+						passedOver++;
+					} else {
+						newContents[index - passedOver] = mappedItem;
+					}
+						
+					
+					
 					ignoreIndexOf[index] = true;
 					break;
 				case "retained":
