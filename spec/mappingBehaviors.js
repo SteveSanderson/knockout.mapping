@@ -1541,3 +1541,9 @@ test('ko.mapping.fromJS should properly map objects that appear in multiple plac
 	equal(y.x[0].title, "Lorem ipsum");
 	equal(z.x()[0].title(), "Lorem ipsum");
 });
+
+test('ko.mapping.fromJS should properly update arrays containing a NULL key', function() {
+	var data = [1,2,3,null];
+	var model=ko.mapping.fromJS(data);
+	ko.mapping.fromJS(data, {}, model);
+});

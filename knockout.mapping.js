@@ -559,14 +559,13 @@
 	}
 
 	function getItemByKey(array, key, callback) {
-		var filtered = ko.utils.arrayFirst(ko.utils.unwrapObservable(array), function (item) {
-			return mapKey(item, callback) === key;
-		});
+		array = ko.utils.unwrapObservable(array);
+		for (var i = 0, j = array.length; i < j; i++) {
+			var item = array[i];
+			if (mapKey(item, callback) === key) return item;
+		}
 
-		if (filtered === null) throw new Error("When calling ko.update*, the key '" + key + "' was not found!");
-		//if ((filtered.length > 1) && (canHaveProperties(filtered[0]))) throw new Error("When calling ko.update*, the key '" + key + "' was not unique!");
-
-		return filtered;
+		throw new Error("When calling ko.update*, the key '" + key + "' was not found!");
 	}
 
 	function filterArrayByKey(array, callback) {
