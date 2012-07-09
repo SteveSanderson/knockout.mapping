@@ -199,7 +199,8 @@
 			if (exports.getType(b) === "undefined") b = [];
 			else b = [b];
 		}
-		return a.concat(b);
+
+		return ko.utils.arrayGetDistinctValues(a.concat(b));
 	}
 
 	// When using a 'create' callback, we proxy the dependent observable so that it doesn't immediately evaluate on creation.
@@ -614,9 +615,8 @@
 		options = options || {};
 		options.visitedObjects = options.visitedObjects || new objectLookup();
 
-		if (!options.parentName) {
-			options = fillOptions(options);
-		}
+debugger;
+		options = fillOptions(options, rootObject[mappingProperty]);
 
 		var mappedRootObject;
 		var unwrappedRootObject = ko.utils.unwrapObservable(rootObject);
@@ -655,7 +655,7 @@
 			case "array":
 			case "undefined":
 				var previouslyMappedValue = options.visitedObjects.get(propertyValue);
-				mappedRootObject[indexer] = (exports.getType(previouslyMappedValue) !== "undefined") ? previouslyMappedValue : exports.visitModel(propertyValue, callback, options);
+				mappedRootObject[indexer] = (exports.getType(previouslyMappedValue) !== "undefined") ? previouslyMappedValue : exports.visitModel(propertyValue, callback);
 				break;
 			default:
 				mappedRootObject[indexer] = callback(propertyValue, options.parentName);

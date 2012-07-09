@@ -96,3 +96,57 @@ test('Adding large amounts of items to array is slow', function() {
 		}
 	});
 });
+
+test('Issue #87', function() {
+	var Item = function(data) {
+		var _this = this;
+
+		var mapping = {
+			include: ["name"]
+		};
+
+		data = data || {};
+		_this.name = ko.observable(data.name || "c");
+
+		ko.mapping.fromJS(data, mapping, _this);
+	};
+
+	var Container = function(data) {
+		var _this = this;
+
+		var mapping = {
+			items: {
+				create: function(options) {
+					return new Item(options.data);
+				}
+			}
+		};
+
+		_this.addItem = function() {
+			_this.items.push(new Item());
+		};
+
+		ko.mapping.fromJS(data, mapping, _this);
+	};
+
+	var data = {
+		items: [
+			{ name: "a" },
+			{ name: "b" }
+		]
+	};
+
+	var mapped = new Container(data);
+
+	mapped.addItem();
+	equal(mapped.items().length, 3);
+	equal(mapped.items()[0].name(), "a");
+	equal(mapped.items()[1].name(), "b");
+	equal(mapped.items()[2].name(), "c");
+
+	var unmapped = ko.mapping.toJS(mapped);
+	equal(unmapped.items.length, 3);
+	equal(unmapped.items[0].name, "a");
+	equal(unmapped.items[1].name, "b");
+	equal(unmapped.items[2].name, "c");
+});
