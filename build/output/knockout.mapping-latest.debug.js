@@ -619,14 +619,14 @@
 		options = options || {};
 		options.visitedObjects = options.visitedObjects || new objectLookup();
 
-debugger;
-		options = fillOptions(options, rootObject[mappingProperty]);
-
 		var mappedRootObject;
 		var unwrappedRootObject = ko.utils.unwrapObservable(rootObject);
+
 		if (!canHaveProperties(unwrappedRootObject)) {
 			return callback(rootObject, options.parentName);
 		} else {
+			options = fillOptions(options, unwrappedRootObject[mappingProperty]);
+
 			// Only do a callback, but ignore the results
 			callback(rootObject, options.parentName);
 			mappedRootObject = exports.getType(unwrappedRootObject) === "array" ? [] : {};
