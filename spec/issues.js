@@ -150,3 +150,28 @@ test('Issue #87', function() {
 	equal(unmapped.items[1].name, "b");
 	equal(unmapped.items[2].name, "c");
 });
+
+test('Issue #88', function() {
+	var ViewModel = function(data) {
+	    ko.mapping.fromJS(data, {
+	        copy: ["id"]
+	    }, this);
+
+	    this.reference = ko.observable(this);
+	};
+
+	var viewModel = new ViewModel({"id":123, "name":"Alice"});
+	var unmapped;
+
+	unmapped = ko.mapping.toJS(viewModel);
+	equal(unmapped.id, 123);
+	equal(unmapped.name, "Alice");
+
+	unmapped = ko.mapping.toJS(viewModel.reference);
+	equal(unmapped.id, 123);
+	equal(unmapped.name, "Alice");
+
+	unmapped = ko.mapping.toJS(viewModel.reference());
+	equal(unmapped.id, 123);
+	equal(unmapped.name, "Alice");
+});
