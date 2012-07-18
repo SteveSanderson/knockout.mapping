@@ -247,6 +247,47 @@ test('ko.mapping.defaultOptions can be set', function() {
 	equal(newOptions.a, "a");
 });
 
+test('recognized root-level options should be moved into a root namespace, leaving other options in place', function() {
+	var recognizedRootProperties = ['create', 'update', 'key', 'arrayChanged'];
+	
+	// Zero out the default options so they don't interfere with this test
+	ko.mapping.defaultOptions({});
+	
+	// Set up a mapping with root and child mappings
+	var mapping = {
+		ignore: ['a'],
+		copy: ['b'],
+		include: ['c'],
+		create: function(opts) { return opts.data; },
+		update: function(opts) { return opts.data; },
+		key: function(item) { return ko.utils.unwrapObservable(item.id); },
+		arrayChanged: function(event, item) { },
+		children: {
+			ignore: ['a1'],
+			copy: ['b1'],
+			include: ['c1'],
+			create: function(opts) { return opts.data; },
+			update: function(opts) { return opts.data; },
+			key: function(item) { return ko.utils.unwrapObservable(item.id); },
+			arrayChanged: function(event, item) { }
+		}
+	};
+	
+	// Run the mapping through ko.mapping.fromJS
+	var resultantMapping = ko.mapping.fromJS({}, mapping).__ko_mapping__;
+	
+	// Test that the recognized root-level mappings were moved into a root-level namespace
+	for(var i=recognizedRootProperties.length-1; i>=0; i--) {
+		notDeepEqual(resultantMapping[recognizedRootProperties[i]], mapping[[recognizedRootProperties[i]]]);
+		deepEqual(resultantMapping[''][recognizedRootProperties[i]], mapping[[recognizedRootProperties[i]]]);
+	};
+	
+	// Test that the non-recognized root-level and descendant mappings were left in place
+	for(property in mapping) {
+		window[recognizedRootProperties.indexOf(property) == -1 ? 'deepEqual' : 'notDeepEqual'](resultantMapping[property], mapping[property]);
+	};
+});
+
 test('ko.mapping.toJS should ignore properties that were not part of the original model', function () {
 	var data = {
 		a: 123,
