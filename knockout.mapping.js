@@ -18,6 +18,7 @@
 	var mappingNesting = 0;
 	var dependentObservables;
 	var visitedObjects;
+	var recognizedRootProperties = ['create', 'update', 'key', 'arrayChanged'];
 
 	var _defaultOptions = {
 		include: ["_destroy"],
@@ -167,14 +168,20 @@
 		return typeof x;
 	}
 
-	function fillOptions(options, otherOptions) {
-		options = options || {};
+	function fillOptions(rawOptions, otherOptions) {
+		options = merge({}, rawOptions);
 
-		// Is there only a root-level mapping present?
-		if ((options.create instanceof Function) || (options.update instanceof Function) || (options.key instanceof Function) || (options.arrayChanged instanceof Function)) {
-			options = {
-				"": options
-			};
+		// Move recognized root-level properties into a root namespace
+		for(var i=recognizedRootProperties.length-1; i>=0; i--) {
+			var property = recognizedRootProperties[i];
+			
+			// Carry on, unless this property is present
+			if(!options[property]) continue;
+			
+			// Move the property into the root namespace
+			if(!(options[''] instanceof Object)) options[''] = {};
+			options[''][property] = options[property];
+			delete options[property];
 		}
 
 		if (otherOptions) {
