@@ -662,7 +662,7 @@
 			case "array":
 			case "undefined":
 				var previouslyMappedValue = options.visitedObjects.get(propertyValue);
-				mappedRootObject[indexer] = (exports.getType(previouslyMappedValue) !== "undefined") ? previouslyMappedValue : exports.visitModel(propertyValue, callback);
+				mappedRootObject[indexer] = (exports.getType(previouslyMappedValue) !== "undefined") ? previouslyMappedValue : exports.visitModel(propertyValue, callback, options);
 				break;
 			default:
 				mappedRootObject[indexer] = callback(propertyValue, options.parentName);

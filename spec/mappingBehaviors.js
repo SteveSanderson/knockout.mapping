@@ -1588,3 +1588,15 @@ test('ko.mapping.fromJS should properly update arrays containing a NULL key', fu
 	var model=ko.mapping.fromJS(data);
 	ko.mapping.fromJS(data, {}, model);
 });
+
+test('ko.mapping.visitModel will pass in correct parent names', function() {
+	var data = { a: { a2: "a2value" } };
+	var parents = [];
+	ko.mapping.visitModel(data, function(obj, parent) {
+		parents.push(parent);
+	});
+	equal(parents.length, 3);
+	equal(parents[0], undefined);
+	equal(parents[1], "a");
+	equal(parents[2], "a.a2");
+});
