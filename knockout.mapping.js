@@ -236,7 +236,7 @@
 						}
 						return DO.apply(DO, arguments);
 					},
-					write: function (val) {
+					write: DO.hasWriteFunction && function (val) {
 						return DO(val);
 					},
 					deferEvaluation: true

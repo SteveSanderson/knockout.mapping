@@ -11,7 +11,8 @@ var generateProxyTests = function(useComputed) {
 
 	testStart[moduleName] = function() {
 		test = {
-			evaluationCount: 0
+			evaluationCount: 0,
+			writeEvaluationCount: 0
 		};
 		test.create = function(createOptions) {
 			var obj = {
@@ -31,6 +32,13 @@ var generateProxyTests = function(useComputed) {
 						if (createOptions.useReadCallback) {
 							mapped.DO = func({
 								read: DOdata,
+								deferEvaluation: !!createOptions.deferEvaluation
+							}, mapped);
+						}
+						else if (createOptions.useWriteCallback) {
+							mapped.DO = func({
+								read: DOdata,
+								write: function(value) { test.written = value; test.writeEvaluationCount++; },
 								deferEvaluation: !!createOptions.deferEvaluation
 							}, mapped);
 						}
@@ -197,6 +205,20 @@ var generateProxyTests = function(useComputed) {
 		equal(vm.inner1.DOprop(), vm);
 	});
 
+	test('dependentObservables with a write callback are passed through', function() {
+		var mapped = test.create({ useWriteCallback: true });
+		equal(mapped.a.DO.hasWriteFunction, true);
+		
+		mapped.a.DO("hello");
+		equal(test.written, "hello");
+		equal(test.writeEvaluationCount, 1);
+	});
+	
+	test('dependentObservables without a write callback do not get a write callback', function() {
+		var mapped = test.create({ useWriteCallback: false });
+		equal(mapped.a.DO.hasWriteFunction, false);
+	});
+	
 	asyncTest('undeferred dependentObservables that are NOT used immediately SHOULD be auto-evaluated after mapping', function() {
 		var mapped = test.create();
 		window.setTimeout(function() {
