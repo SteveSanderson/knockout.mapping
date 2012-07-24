@@ -435,7 +435,7 @@ var generateProxyTests = function(useComputed) {
 					if (options.data.id == "b")
 						return options.data;
 					else 
-						return options.passOver;
+						return options.skip;
 				}
 			}
 		});
@@ -443,6 +443,36 @@ var generateProxyTests = function(useComputed) {
 		
 		equal(result.items().length, 1);
 		equal(result.items()[0].id, "b");
+		
+	});
+
+	//unit test for updating existing arrays (e.g. first item is retained, second item is skipped and the third item gets added)?
+	test('ko.mapping.updateViewModel skipping an item should retain all other items', function() {
+		var obj = {
+			items: [
+				{ id: "a" },
+				{ id: "b" },
+				{ id: "c" }
+			]
+		}
+		
+		var dependencyInvocations = 0;
+		
+		var result = ko.mapping.fromJS(obj, {
+			"items": {
+				create: function(options) {
+					if (options.data.id == "b")
+						return options.skip;
+					else 
+						return options.data;
+				}
+			}
+		});
+		
+		
+		equal(result.items().length, 2);
+		equal(result.items()[0].id, "a");
+		equal(result.items()[1].id, "c");
 		
 	});
 };
