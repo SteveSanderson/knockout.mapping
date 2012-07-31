@@ -50,6 +50,42 @@ test('ko.mapping.toJS should ignore specified single property', function() {
 	equal(result.b, undefined);
 });
 
+test('ko.mapping.toJS should ignore specified single property on update', function() {
+	var data = {
+		a: "a",
+		b: "b",
+		c: "c"
+	};
+	
+	var result = ko.mapping.fromJS(data);
+	equal(result.a(), "a");
+	equal(result.b(), "b");
+	equal(result.c(), "c");
+	ko.mapping.fromJS({ a: "a2", b: "b2", c: "c2" }, { ignore: ["b", "c"] }, result);
+	equal(result.a(), "a2");
+	equal(result.b(), "b");
+	equal(result.c(), "c");
+});
+
+test('ko.mapping.toJS should ignore specified multiple properties', function() {
+	var data = {
+		a: { a1: "a1", a2: "a2" },
+		b: "b"
+	};
+	
+	var result = ko.mapping.fromJS(data, { ignore: ["a.a1", "b"] });
+	equal(result.a.a1, undefined);
+	equal(result.a.a2(), "a2");
+	equal(result.b, undefined);
+
+    data.a.a1 = "a11";
+    data.a.a2 = "a22";
+	ko.mapping.fromJS(data, {}, result);
+	equal(result.a.a1, undefined);
+	equal(result.a.a2(), "a22");
+	equal(result.b, undefined);
+});
+
 test('ko.mapping.fromJS should ignore specified single property', function() {
 	var data = {
 		a: "a",

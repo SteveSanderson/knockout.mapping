@@ -175,3 +175,31 @@ test('Issue #88', function() {
 	equal(unmapped.id, 123);
 	equal(unmapped.name, "Alice");
 });
+
+test('Issue #94', function() {
+	var model = { 
+	    prop: "original",
+	    obj: { 
+	        prop: "original", 
+	        obj: { 
+	            prop: "original" 
+	        } 
+	    }
+	};
+	var viewModel = ko.mapping.fromJS(model);
+
+	var modelUpdate = { 
+	    prop: "edit",
+	    obj: { 
+	        prop: "edit",
+	        obj: { 
+	            prop: "edit" 
+	        }
+	    }            
+	};
+	ko.mapping.fromJS(modelUpdate, { ignore: ["obj.prop", "obj.obj"] }, viewModel);
+
+	equal(viewModel.prop(), "edit");
+	equal(viewModel.obj.prop(), "original");
+	equal(viewModel.obj.obj.prop(), "original");
+});
