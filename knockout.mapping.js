@@ -228,6 +228,12 @@
 			// We wrap the original dependent observable so that we can remove it from the 'dependentObservables' list we need to evaluate after mapping has
 			// completed if the user already evaluated the DO themselves in the meantime.
 			var wrap = function (DO) {
+				// Temporarily revert ko.dependentObservable, since it is used in ko.isWriteableObservable
+				var tmp = ko.dependentObservable;
+				ko.dependentObservable = realKoDependentObservable;
+				var isWriteable = ko.isWriteableObservable(DO);
+				ko.dependentObservable = tmp;
+
 				var wrapped = realKoDependentObservable({
 					read: function () {
 						if (!isRemoved) {
@@ -236,7 +242,7 @@
 						}
 						return DO.apply(DO, arguments);
 					},
-					write: DO.hasWriteFunction && function (val) {
+					write: isWriteable && function (val) {
 						return DO(val);
 					},
 					deferEvaluation: true
