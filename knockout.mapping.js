@@ -19,6 +19,7 @@
 	var dependentObservables;
 	var visitedObjects;
 	var recognizedRootProperties = ['create', 'update', 'key', 'arrayChanged'];
+	var emptyReturn = {};
 
 	var _defaultOptions = {
 		include: ["_destroy"],
@@ -310,10 +311,19 @@
 
 		var createCallback = function (data) {
 			return withProxyDependentObservable(dependentObservables, function () {
-				return options[parentName].create({
-					data: data || callbackParams.data,
-					parent: callbackParams.parent
-				});
+				
+				if (ko.utils.unwrapObservable(parent) instanceof Array) {
+					return options[parentName].create({
+						data: data || callbackParams.data,
+						parent: callbackParams.parent,
+						skip: emptyReturn
+					});
+				} else {
+					return options[parentName].create({
+						data: data || callbackParams.data,
+						parent: callbackParams.parent,
+					});
+				}				
 			});
 		};
 
@@ -432,7 +442,7 @@
 					options.mappedProperties[fullPropertyName] = true;
 				});
 			}
-		} else {
+		} else { //mappedRootObject is an array
 			var changes = [];
 
 			var hasKeyCallback = false;
@@ -527,6 +537,7 @@
 			}
 
 			var newContents = [];
+			var passedOver = 0;
 			for (i = 0, j = editScript.length; i < j; i++) {
 				var key = editScript[i];
 				var mappedItem;
@@ -540,7 +551,15 @@
 					}
 
 					var index = ignorableIndexOf(ko.utils.unwrapObservable(rootObject), item, ignoreIndexOf);
-					newContents[index] = mappedItem;
+					
+					if (mappedItem === emptyReturn) {
+						passedOver++;
+					} else {
+						newContents[index - passedOver] = mappedItem;
+					}
+						
+					
+					
 					ignoreIndexOf[index] = true;
 					break;
 				case "retained":

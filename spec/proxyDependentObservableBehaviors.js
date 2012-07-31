@@ -418,6 +418,63 @@ var generateProxyTests = function(useComputed) {
 		equal(mapped.DO2._wrapper, undefined);
 		equal(mapped.DO3._wrapper, true);
 	});
+	
+	test('ko.mapping.updateViewModel should allow for the avoidance of adding an item to its parent observableArray', function() {
+		var obj = {
+			items: [
+				{ id: "a" },
+				{ id: "b" }
+			]
+		}
+		
+		var dependencyInvocations = 0;
+		
+		var result = ko.mapping.fromJS(obj, {
+			"items": {
+				create: function(options) {
+					if (options.data.id == "b")
+						return options.data;
+					else 
+						return options.skip;
+				}
+			}
+		});
+		
+		
+		equal(result.items().length, 1);
+		equal(result.items()[0].id, "b");
+		
+	});
+
+	//unit test for updating existing arrays (e.g. first item is retained, second item is skipped and the third item gets added)?
+	test('ko.mapping.updateViewModel skipping an item should retain all other items', function() {
+		var obj = {
+			items: [
+				{ id: "a" },
+				{ id: "b" },
+				{ id: "c" }
+			]
+		}
+		
+		var dependencyInvocations = 0;
+		
+		var result = ko.mapping.fromJS(obj, {
+			"items": {
+				create: function(options) {
+					if (options.data.id == "b")
+						return options.skip;
+					else 
+						return options.data;
+				}
+			}
+		});
+		
+		
+		equal(result.items().length, 2);
+		equal(result.items()[0].id, "a");
+		equal(result.items()[1].id, "c");
+		
+	});
 };
 
 generateProxyTests(false);
