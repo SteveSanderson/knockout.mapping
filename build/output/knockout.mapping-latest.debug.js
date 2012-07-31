@@ -1,4 +1,4 @@
-/// Knockout Mapping plugin v2.2.4
+/// Knockout Mapping plugin v2.3.0
 /// (c) 2012 Steven Sanderson, Roy Jacobs - http://knockoutjs.com/
 /// License: MIT (http://www.opensource.org/licenses/mit-license.php)
 (function (factory) {
@@ -22,6 +22,7 @@
 	var dependentObservables;
 	var visitedObjects;
 	var recognizedRootProperties = ['create', 'update', 'key', 'arrayChanged'];
+	var emptyReturn = {};
 
 	var _defaultOptions = {
 		include: ["_destroy"],
@@ -30,13 +31,32 @@
 	};
 	var defaultOptions = _defaultOptions;
 
+	// Author: KennyTM @ StackOverflow
+	function unionArrays (x, y) {
+		var obj = {};
+		for (var i = x.length - 1; i >= 0; -- i) obj[x[i]] = x[i];
+		for (var i = y.length - 1; i >= 0; -- i) obj[y[i]] = y[i];
+		var res = [];
+
+		for (var k in obj) {
+			res.push(obj[k]);
+		};
+
+		return res;
+	}
+
 	function extendObject(destination, source) {
 		for (var key in source) {
 			if (source.hasOwnProperty(key) && source[key]) {
 				if (key && destination[key] && !(exports.getType(destination[key]) === "array")) {
 					extendObject(destination[key], source[key]);
 				} else {
-					destination[key] = source[key];
+					var bothArrays = exports.getType(destination[key]) === "array" && exports.getType(source[key]) === "array";
+					if (bothArrays) {
+						destination[key] = unionArrays(destination[key], source[key]);
+					} else {
+						destination[key] = source[key];
+					}
 				}
 			}
 		}
@@ -231,6 +251,12 @@
 			// We wrap the original dependent observable so that we can remove it from the 'dependentObservables' list we need to evaluate after mapping has
 			// completed if the user already evaluated the DO themselves in the meantime.
 			var wrap = function (DO) {
+				// Temporarily revert ko.dependentObservable, since it is used in ko.isWriteableObservable
+				var tmp = ko.dependentObservable;
+				ko.dependentObservable = realKoDependentObservable;
+				var isWriteable = ko.isWriteableObservable(DO);
+				ko.dependentObservable = tmp;
+
 				var wrapped = realKoDependentObservable({
 					read: function () {
 						if (!isRemoved) {
@@ -239,7 +265,7 @@
 						}
 						return DO.apply(DO, arguments);
 					},
-					write: DO.hasWriteFunction && function (val) {
+					write: isWriteable && function (val) {
 						return DO(val);
 					},
 					deferEvaluation: true
@@ -288,10 +314,19 @@
 
 		var createCallback = function (data) {
 			return withProxyDependentObservable(dependentObservables, function () {
-				return options[parentName].create({
-					data: data || callbackParams.data,
-					parent: callbackParams.parent
-				});
+				
+				if (ko.utils.unwrapObservable(parent) instanceof Array) {
+					return options[parentName].create({
+						data: data || callbackParams.data,
+						parent: callbackParams.parent,
+						skip: emptyReturn
+					});
+				} else {
+					return options[parentName].create({
+						data: data || callbackParams.data,
+						parent: callbackParams.parent
+					});
+				}				
 			});
 		};
 
@@ -410,7 +445,7 @@
 					options.mappedProperties[fullPropertyName] = true;
 				});
 			}
-		} else {
+		} else { //mappedRootObject is an array
 			var changes = [];
 
 			var hasKeyCallback = false;
@@ -505,6 +540,7 @@
 			}
 
 			var newContents = [];
+			var passedOver = 0;
 			for (i = 0, j = editScript.length; i < j; i++) {
 				var key = editScript[i];
 				var mappedItem;
@@ -518,7 +554,15 @@
 					}
 
 					var index = ignorableIndexOf(ko.utils.unwrapObservable(rootObject), item, ignoreIndexOf);
-					newContents[index] = mappedItem;
+					
+					if (mappedItem === emptyReturn) {
+						passedOver++;
+					} else {
+						newContents[index - passedOver] = mappedItem;
+					}
+						
+					
+					
 					ignoreIndexOf[index] = true;
 					break;
 				case "retained":
