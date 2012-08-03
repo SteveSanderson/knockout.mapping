@@ -203,3 +203,20 @@ test('Issue #94', function() {
 	equal(viewModel.obj.prop(), "original");
 	equal(viewModel.obj.obj.prop(), "original");
 });
+
+asyncTest('Issue #99', function() {
+	var a = {
+		x : ko.observable().extend({ throttle: 1 })
+	};
+
+	var receivedValue;
+	a.x.subscribe(function(value) {
+		receivedValue = value;
+	});
+
+	ko.mapping.fromJS({ x: 3 }, {}, a);
+	window.setTimeout(function() {
+		equal(receivedValue, 3);
+		start();
+	}, 2);
+});
