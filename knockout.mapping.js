@@ -189,7 +189,7 @@
 	}
 
 	function fillOptions(rawOptions, otherOptions) {
-		options = merge({}, rawOptions);
+		var options = merge({}, rawOptions);
 
 		// Move recognized root-level properties into a root namespace
 		for(var i=recognizedRootProperties.length-1; i>=0; i--) {
