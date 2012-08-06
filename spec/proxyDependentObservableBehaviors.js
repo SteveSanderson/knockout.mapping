@@ -163,7 +163,7 @@ var generateProxyTests = function(useComputed) {
 						id: ko.observable(options.data.id),
 						observeParent: func(function() {
 							dependencyInvocations++;
-							return options.parent().length;
+							return options.parent.items().length;
 						})
 					}
 				}
@@ -461,6 +461,7 @@ var generateProxyTests = function(useComputed) {
 		var result = ko.mapping.fromJS(obj, {
 			"items": {
 				create: function(options) {
+					debugger;
 					if (options.data.id == "b")
 						return options.skip;
 					else 

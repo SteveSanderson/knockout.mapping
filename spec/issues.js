@@ -220,3 +220,35 @@ asyncTest('Issue #99', function() {
 		start();
 	}, 2);
 });
+
+test('Issue #33', function() {
+	var mapping = {
+	    'items': {
+	        key: function(data) {
+	            return ko.utils.unwrapObservable(data.id);
+	        },
+	        create: function(options) {
+	            var o = (new(function() {
+	                this._remove = function() {
+	                    options.parent.items.mappedRemove(options.data);
+	                };
+	                ko.mapping.fromJS(options.data, {}, this);
+	            })());
+	            return o;
+	        }
+	    }
+	};
+
+	var i = 0;
+	var vm = ko.mapping.fromJS({
+	    'items': [{
+	        id: ++i}]
+	}, mapping);
+
+    vm.items.mappedCreate({
+        id: ++i
+    });
+
+	vm.items()[1]._remove();
+	vm.items()[0]._remove();
+});
