@@ -18,7 +18,7 @@
 	var mappingNesting = 0;
 	var dependentObservables;
 	var visitedObjects;
-	var recognizedRootProperties = ['create', 'update', 'key', 'arrayChanged'];
+	var recognizedRootProperties = ["create", "update", "key", "arrayChanged"];
 	var emptyReturn = {};
 
 	var _defaultOptions = {
@@ -192,15 +192,15 @@
 		var options = merge({}, rawOptions);
 
 		// Move recognized root-level properties into a root namespace
-		for(var i=recognizedRootProperties.length-1; i>=0; i--) {
+		for (var i = recognizedRootProperties.length - 1; i >= 0; i--) {
 			var property = recognizedRootProperties[i];
 			
 			// Carry on, unless this property is present
-			if(!options[property]) continue;
+			if (!options[property]) continue;
 			
 			// Move the property into the root namespace
-			if(!(options[''] instanceof Object)) options[''] = {};
-			options[''][property] = options[property];
+			if (!(options[""] instanceof Object)) options[""] = {};
+			options[""][property] = options[property];
 			delete options[property];
 		}
 
@@ -267,7 +267,7 @@
 					},
 					deferEvaluation: true
 				});
-				if(DEBUG) wrapped._wrapper = true;
+				if (DEBUG) wrapped._wrapper = true;
 				return wrapped;
 			};
 			
