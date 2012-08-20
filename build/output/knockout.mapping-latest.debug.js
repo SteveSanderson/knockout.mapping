@@ -1,4 +1,4 @@
-/// Knockout Mapping plugin v2.3.1
+/// Knockout Mapping plugin v2.3.2
 /// (c) 2012 Steven Sanderson, Roy Jacobs - http://knockoutjs.com/
 /// License: MIT (http://www.opensource.org/licenses/mit-license.php)
 (function (factory) {
@@ -423,6 +423,7 @@
 				}
 
 				visitedObjects.save(rootObject, mappedRootObject);
+				if (hasUpdateCallback()) return mappedRootObject;
 
 				// For non-atomic types, visit all properties and update recursively
 				visitPropertiesOrArrayEntries(rootObject, function (indexer) {
