@@ -1,3 +1,7 @@
+Release 2.3.2 - August 20th, 2012
+
+* Fixed issue #86: Don't update properties on object with update callback
+
 Release 2.3.1 - August 6th, 2012
 
 * Fixed issue #33: Create method in mappings receive meaningless options.parent for observableArray properties

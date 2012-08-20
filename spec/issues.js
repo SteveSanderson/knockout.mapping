@@ -252,3 +252,44 @@ test('Issue #33', function() {
 	vm.items()[1]._remove();
 	vm.items()[0]._remove();
 });
+
+test('Issue #86', function() {
+	var ViewModel = function() {
+		var _this = this;
+		this.filters = new FilterModel();
+		this.update = function(data) {
+			var mapping = {
+				filters: {
+					update: function(options) {
+						return options.target.update(options.data);
+					}
+				}
+			};
+
+			ko.mapping.fromJS(data, mapping, _this);
+			return _this;
+		};
+	};
+
+	var FilterModel = function() {
+		var _this = this;
+		this.a = ko.observable();
+		this.update = function(data) {
+			debugger;
+			var mapping = {
+				a: {
+					update: function(options) {
+						debugger;
+						return options.data + " modified";
+					}
+				}
+			};
+			ko.mapping.fromJS(data, mapping, _this);
+			return _this;
+		};
+	};
+
+	var model = new ViewModel();
+	model.update({ filters: { a: "a1" }});
+	equal(model.filters.a(), "a1 modified");
+});
