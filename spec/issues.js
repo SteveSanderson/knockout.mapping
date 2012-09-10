@@ -293,3 +293,11 @@ test('Issue #86', function() {
 	model.update({ filters: { a: "a1" }});
 	equal(model.filters.a(), "a1 modified");
 });
+
+test('Issue #107', function () {
+	var model = ko.mapping.fromJS({ foo: 'bar' }, {
+		fiz: 'applesauce'
+	});
+
+	ko.mapping.fromJS({ foo: 'baz' }, model);
+});
