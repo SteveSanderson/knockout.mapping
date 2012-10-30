@@ -1,3 +1,8 @@
+Release 2.3.3 - October 30th, 2012
+
+* Fixed issue #105, #111: Update callback is not being called
+* Fixed issue #107: String values in mapping cause infinite recursion in extendObject
+
 Release 2.3.2 - August 20th, 2012
 
 * Fixed issue #86: Don't update properties on object with update callback

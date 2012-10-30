@@ -1,4 +1,4 @@
-/// Knockout Mapping plugin v2.3.2
+/// Knockout Mapping plugin v2.3.3
 /// (c) 2012 Steven Sanderson, Roy Jacobs - http://knockoutjs.com/
 /// License: MIT (http://www.opensource.org/licenses/mit-license.php)
 (function (factory) {
@@ -46,9 +46,12 @@
 	}
 
 	function extendObject(destination, source) {
+		var destType;
+
 		for (var key in source) {
 			if (source.hasOwnProperty(key) && source[key]) {
-				if (key && destination[key] && !(exports.getType(destination[key]) === "array")) {
+				destType = exports.getType(destination[key]);
+				if (key && destination[key] && destType !== "array" && destType !== "string") {
 					extendObject(destination[key], source[key]);
 				} else {
 					var bothArrays = exports.getType(destination[key]) === "array" && exports.getType(source[key]) === "array";
@@ -383,18 +386,19 @@
 							return valueToWrite;
 						}
 					} else {
+						var hasCreateOrUpdateCallback = hasCreateCallback() || hasUpdateCallback();
+						
 						if (hasCreateCallback()) {
 							mappedRootObject = createCallback();
-							return mappedRootObject;
 						} else {
 							mappedRootObject = ko.observable(ko.utils.unwrapObservable(rootObject));
-							return mappedRootObject;
 						}
 
 						if (hasUpdateCallback()) {
 							mappedRootObject(updateCallback(mappedRootObject));
-							return mappedRootObject;
 						}
+						
+						if (hasCreateOrUpdateCallback) return mappedRootObject;
 					}
 				}
 
