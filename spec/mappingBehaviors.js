@@ -536,17 +536,30 @@ test('ko.mapping.fromJS update callbacks should pass in a non-observable', funct
 	equal(result.obj.b, "b");
 });
 
-test('ko.mapping.fromJS update callbacks should pass in an observable', function () {
+test('ko.mapping.fromJS update callbacks should pass in an observable, when original is also observable', function () {
 	var result = ko.mapping.fromJS({
 		obj: ko.observable("a")
 	}, {
 		obj: {
 			update: function(options) {
-				return "ab";
+				return options.observable() + "ab";
 			}
 		}
 	});
-	equal(result.obj(), "ab");
+	equal(result.obj(), "aab");
+});
+
+test('ko.mapping.fromJS update callbacks should pass in an observable, when original is not observable', function () {
+	var result = ko.mapping.fromJS({
+		obj: "a"
+	}, {
+		obj: {
+			update: function(options) {
+				return options.observable() + "ab";
+			}
+		}
+	});
+	equal(result.obj(), "aab");
 });
 
 test('ko.mapping.fromJS should map the top-level atomic properties on the supplied object as observables', function () {

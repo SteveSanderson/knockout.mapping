@@ -383,18 +383,19 @@
 							return valueToWrite;
 						}
 					} else {
+						var hasCreateOrUpdateCallback = hasCreateCallback() || hasUpdateCallback();
+						
 						if (hasCreateCallback()) {
 							mappedRootObject = createCallback();
-							return mappedRootObject;
 						} else {
 							mappedRootObject = ko.observable(ko.utils.unwrapObservable(rootObject));
-							return mappedRootObject;
 						}
 
 						if (hasUpdateCallback()) {
 							mappedRootObject(updateCallback(mappedRootObject));
-							return mappedRootObject;
 						}
+						
+						if (hasCreateOrUpdateCallback) return mappedRootObject;
 					}
 				}
 
