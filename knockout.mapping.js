@@ -305,7 +305,7 @@
 
 		var callbackParams = {
 			data: rootObject,
-			parent: mappedParent
+			parent: mappedParent || parent
 		};
 
 		var hasCreateCallback = function () {

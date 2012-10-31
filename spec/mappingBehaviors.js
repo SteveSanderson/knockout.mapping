@@ -735,7 +735,7 @@ test('ko.mapping.fromJS should send parent along to create callback when creatin
 	});
 });
 
-test('ko.mapping.fromJS should send parent along to create callback when creating an array item', function() {
+test('ko.mapping.fromJS should send parent along to create callback when creating an array item inside an object', function() {
 	var obj = {
 		a: "a",
 		b: [
@@ -753,6 +753,26 @@ test('ko.mapping.fromJS should send parent along to create callback when creatin
 				equal(options.parent, target);
 				numCreated++;
 			}
+		}
+	}, target);
+	
+	equal(numCreated, 2);
+});
+
+test('ko.mapping.fromJS should send parent along to create callback when creating an array item inside an array', function() {
+	// parent is the array
+	
+	var obj = [
+		{ id: 1 },
+		{ id: 2 }
+	];
+	
+	var target = [];
+	var numCreated = 0;
+	var result = ko.mapping.fromJS(obj, {
+		create: function(options) {
+			equal(ko.isObservable(options.parent), true);
+			numCreated++;
 		}
 	}, target);
 	
