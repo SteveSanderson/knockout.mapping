@@ -1670,3 +1670,87 @@ test('ko.mapping.visitModel will pass in correct parent names', function() {
 	equal(parents[1], "a");
 	equal(parents[2], "a.a2");
 });
+
+test('ko.mapping.toJS should merge the default observe', function() {
+	var data = {
+		a: "a",
+		b: "b",
+		c: "c"
+	};
+	
+	ko.mapping.defaultOptions().observe = ["a"];
+	var result  = ko.mapping.fromJS(data, { observe: "b" });
+	equal(ko.isObservable(result.a), true);
+	equal(ko.isObservable(result.b), true);
+	equal(ko.isObservable(result.c), false);	
+});
+
+test('ko.mapping.fromJS should observe specified single property', function() {
+	var data = {
+		a: "a",
+		b: "b"
+	};
+	
+	var result = ko.mapping.fromJS(data, { observe: "a" });
+	equal(result.a(), "a");
+	equal(result.b, "b");
+});
+
+test('ko.mapping.fromJS should observe specified array', function() {
+	var data = {
+		a: "a",
+		b: ["b1", "b2"]
+	};
+	
+	var result = ko.mapping.fromJS(data, { observe: "b" });
+	equal(result.a, "a");
+	equal(ko.isObservable(result.b), true);	
+});
+
+test('ko.mapping.fromJS should observe specified array item', function() {
+	var data = {
+		a: "a",
+		b: [{ b1: "v1" }, { b2: "v2" }] 
+	};
+	
+	var result = ko.mapping.fromJS(data, { observe: "b[0].b1" });
+	equal(result.a, "a");
+	equal(result.b[0].b1(), "v1");
+	equal(result.b[1].b2, "v2");
+});
+
+test('ko.mapping.fromJS should observe specified array but not the children', function() {
+	var data = {
+		a: "a",
+		b: [{ b1: "v1" }, { b2: "v2" }] 
+	};
+	
+	var result = ko.mapping.fromJS(data, { observe: "b" });
+	equal(result.a, "a");
+	equal(result.b()[0].b1, "v1");
+	equal(result.b()[1].b2, "v2");
+});
+
+test('ko.mapping.fromJS should observe specified single property, also when going back .toJS', function() {
+	var data = {
+		a: "a",
+		b: "b"
+	};
+	
+	var result = ko.mapping.fromJS(data, { observe: "b" });
+	var js = ko.mapping.toJS(result);
+	equal(js.a, "a");
+	equal(js.b, "b");
+});
+
+test('ko.mapping.fromJS should copy specified single property, also when going back .toJS, except when overridden', function() {
+	var data = {
+		a: "a",
+		b: "b"
+	};
+	
+	var result = ko.mapping.fromJS(data, { observe: "b" });
+	var js = ko.mapping.toJS(result, { ignore: "b" });
+	equal(js.a, "a");
+	equal(js.b, undefined);
+});
