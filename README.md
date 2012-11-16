@@ -2,7 +2,7 @@ A fork of the Object mapping plugin for [Knockout](http://knockoutjs.com/) - Fin
 
 #New Stuff#
 
-No breaking changes, but adds a additional options array `observe`. When `observe` contains one or more property names, all properties are copied except the the ones in `observe`; they are observed. The arrays `ignore` and `include` still work as normal. 
+No breaking changes, but adds an additional options array `observe`. When `observe` contains one or more property names, all properties are copied except the the ones in `observe`; they are observed. The arrays `ignore` and `include` still work as normal. 
 
 The array `copy` can be used for efficiency to copy the whole property including children. If an array or object property is not specified in `copy` or `observe` then it is recursively mapped. For example:
 
