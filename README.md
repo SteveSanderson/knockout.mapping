@@ -31,7 +31,7 @@ var data = {
 	b: [{ b1: "v1" }, { b2: "v2" }] 
 };
 var result = ko.mapping.fromJS(data, { observe: "b[0].b1"});
-var results = ko.mapping.fromJS(data, { observe: "b[0].b1", copy: "b" });
+var result2 = ko.mapping.fromJS(data, { observe: "b[0].b1", copy: "b" });
 ```
 result will be:
 
