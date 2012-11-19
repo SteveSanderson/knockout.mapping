@@ -439,7 +439,7 @@
 					}
 
 					if (ko.utils.arrayIndexOf(options.copy, fullPropertyName) != -1) {
-					    mappedRootObject[indexer] = rootObject[indexer];
+						mappedRootObject[indexer] = rootObject[indexer];
 						return;
 					}
 
@@ -718,7 +718,7 @@
 
 			// If we don't want to explicitly copy the unmapped property...
 			if (ko.utils.arrayIndexOf(options.copy, indexer) === -1) {
-			// ...find out if it's a property we want to explicitly include
+				// ...find out if it's a property we want to explicitly include
 				if (ko.utils.arrayIndexOf(options.include, indexer) === -1) {
 					// The mapped properties object contains all the properties that were part of the original object.
 					// If a property does not exist, and it is not because it is part of an array (e.g. "myProp[3]"), then it should not be unmapped.
