@@ -1,3 +1,7 @@
+Release 2.3.4 - November 22nd, 2012
+
+* Issue #114: Added new "observe" array to options
+
 Release 2.3.3 - October 30th, 2012
 
 * Fixed issue #105, #111: Update callback is not being called
