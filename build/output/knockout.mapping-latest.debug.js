@@ -1,4 +1,4 @@
-/// Knockout Mapping plugin v2.3.4
+/// Knockout Mapping plugin v2.3.5
 /// (c) 2012 Steven Sanderson, Roy Jacobs - http://knockoutjs.com/
 /// License: MIT (http://www.opensource.org/licenses/mit-license.php)
 (function (factory) {
@@ -469,6 +469,7 @@
 					if (ko.isWriteableObservable(mappedRootObject[indexer])) {
 						mappedRootObject[indexer](ko.utils.unwrapObservable(value));
 					} else {
+						value = mappedRootObject[indexer] === undefined ? value : ko.utils.unwrapObservable(value);
 						mappedRootObject[indexer] = value;
 					}
 

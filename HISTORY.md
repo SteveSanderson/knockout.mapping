@@ -1,3 +1,7 @@
+Release 2.3.5 - December 10th, 2012
+
+* Issue #121: Added functionality so that explicit declared none observable members on a ViewModel will remain none observable after mapping
+
 Release 2.3.4 - November 22nd, 2012
 
 * Issue #114: Added new "observe" array to options
