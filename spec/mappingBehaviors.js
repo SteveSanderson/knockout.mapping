@@ -1754,3 +1754,38 @@ test('ko.mapping.fromJS should copy specified single property, also when going b
 	equal(js.a, "a");
 	equal(js.b, undefined);
 });
+
+test('ko.mapping.fromJS explicit declared none observable members should not be mapped to an observable', function() {
+	var data = {
+		a: "a",
+		b: "b",
+        c: "c"
+	};
+	
+    var ViewModel = function() {
+        this.a = ko.observable();
+        this.b = null;
+    };
+
+	var result = ko.mapping.fromJS(data, {}, new ViewModel());
+    equal(ko.isObservable(result.a), true);
+    equal(ko.isObservable(result.b), false);
+    equal(ko.isObservable(result.c), true);
+    equal(result.b, data.b);
+});
+
+test('ko.mapping.toJS explicit declared none observable members should be mapped toJS correctly', function() {
+	var data = {
+		a: "a",
+	};
+	
+    var ViewModel = function() {
+        this.a = null;
+    };
+
+	var result = ko.mapping.fromJS(data, {}, new ViewModel());
+    var js = ko.mapping.toJS(result);
+
+    equal(js.b, data.b);
+});
+
