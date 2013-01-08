@@ -115,15 +115,12 @@
 		}
 
 		// Evaluate any dependent observables that were proxied.
-		// Do this in a timeout to defer execution. Basically, any user code that explicitly looks up the DO will perform the first evaluation. Otherwise,
-		// it will be done by this code.
+		// Do this after the model's observables have been created
 		if (!--mappingNesting) {
-			window.setTimeout(function () {
-				while (dependentObservables.length) {
-					var DO = dependentObservables.pop();
-					if (DO) DO();
-				}
-			}, 0);
+			while (dependentObservables.length) {
+				var DO = dependentObservables.pop();
+				if (DO) DO();
+			}
 		}
 
 		// Save any new mapping options in the view model, so that updateFromJS can use them later.
