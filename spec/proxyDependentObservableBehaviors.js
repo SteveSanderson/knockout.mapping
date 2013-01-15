@@ -174,37 +174,6 @@ var generateProxyTests = function(useComputed) {
 		equal(result.items()[1].observeParent(), 2);
 	});
 
-	test('nested calls to mapping should not revert proxyDependentObservable multiple times', function() {
-		var vmjs = {
-			"inner1": {
-				"inner2": {
-				}
-			}
-		}
-		var vm = undefined;
-		var mapping = {
-			"inner1": {
-				"create": function(options) {
-					//use the same mapping object to map inner2
-					var that = ko.mapping.fromJS(options.data, mapping);
-					that.DOprop = func(function() {
-						// if the DO is evaluated straight away, this will return undefined
-						return vm;
-					});
-					return that;
-				}
-			},
-			"inner2": {
-				"create": function(options) {
-					var that = ko.mapping.fromJS(options.data);
-					return that;
-				}
-			}
-		};
-		var vm = ko.mapping.fromJS(vmjs, mapping);
-		equal(vm.inner1.DOprop(), vm);
-	});
-
 	test('dependentObservables with a write callback are passed through', function() {
 		var mapped = test.create({ useWriteCallback: true });
 		equal(mapped.a.DO.hasWriteFunction, true);
@@ -280,22 +249,24 @@ var generateProxyTests = function(useComputed) {
 			a: { b: null }
 		};
 
-		var DOsubscribedVal;
+		var DOsubscribedVal ;
 		var mapping = {
 			a: {
 				create: function(options) {
 					var mappedB = ko.mapping.fromJS(options.data, {
 						create: function(options) {
-							var DOval;
+							//In KO writable computed observables have to be backed by an observable
+							//otherwise they won't be notified they need updating. see: http://jsfiddle.net/drdamour/9Pz4m/ 
+							var DOval = ko.observable(undefined);
 							
 							var m = {};
 							m.myValue = ko.observable("myValue");
 							m.DO = func({
 								read: function() {
-									return DOval;
+									return DOval();
 								},
 								write: function(val) {
-									DOval = val;
+									DOval(val);
 								}
 							});
 							m.readOnlyDO = func(function() {
@@ -319,7 +290,8 @@ var generateProxyTests = function(useComputed) {
 		equal(DOsubscribedVal, "bob");
 	});
 	
-	asyncTest('dependentObservable dependencies trigger subscribers', function() {
+
+	test('dependentObservable dependencies trigger subscribers', function() {
 		var obj = {
 			inner: {
 				dependency: 1
@@ -350,21 +322,150 @@ var generateProxyTests = function(useComputed) {
 		
 		var mapped = ko.mapping.fromJS(obj, mapping);
 		var i = mapped.inner;
-		equal(i.evaluationCount, 0);
-		window.setTimeout(function() {
-			start();
+		equal(i.evaluationCount, 1); //it's evaluated once prior to fromJS returning
+
+		// change the dependency
+		i.dependency(2);
 			
-			// after the timeout, the DO is already evaluated once by the mapping plugin, causing the subscription to update
-			equal(i.evaluationCount, 1);
-			
-			// change the dependency
-			i.dependency(2);
-			
-			// should also have re-evaluated
-			equal(i.evaluationCount, 2);
-		});
+		// should also have re-evaluated
+		equal(i.evaluationCount, 2);
+	});
+
+
+	//taken from outline defined at https://github.com/SteveSanderson/knockout.mapping/issues/95#issuecomment-12275070
+	test('dependentObservable evaluation is defferred until mapping takes place', function() {
+		var model = {
+			a: { name: "a" },
+  			b: { name: "b" }
+		};
+		
+		var MyClassA = function(data, parent) {
+			var _this = this;
+
+			ko.mapping.fromJS(data, {}, _this);
+
+			_this.DO = func(function() {
+				//Depends on b, which may not be there yet
+				return _this.name() + parent.b.name(); 
+			});
+		};
+
+		var MyClassB = function(data, parent) {
+			var _this = this;
+
+			ko.mapping.fromJS(data, {}, _this);
+
+			_this.DO = func(function() {
+				//depends on a, which may not be there yet
+				return _this.name() + parent.a.name(); 
+			});
+		};
+
+
+		var mapping = {
+			a: {
+				create: function(options) {
+					return new MyClassA(options.data, options.parent);
+				}
+			},
+			b: {
+				create: function(options) {
+					return new MyClassB(options.data, options.parent);
+				}
+			}
+		}
+
+
+		
+		var mappedVM = ko.mapping.fromJS(model, mapping);
+
+
+		equal(mappedVM.a.DO(), "ab");
+		equal(mappedVM.b.DO(), "ba");
 	});
 	
+
+	test('dependentObservable evaluation for nested is defferred until after mapping takes place', function() {
+		var model = {
+			a: { 
+				name: "a", 
+  				c : {name: "c"} //nested 
+			},
+  			b: { 
+  				name: "b"
+  			}
+		};
+		
+		var MyClassA = function(data, parent) {
+			var _this = this;
+
+			var mapping = {
+				c: {
+					create: function(options) {
+						return new MyClassC(options.data, options.parent, parent); //last param parent here is C's grandparent
+					}
+				}
+			};
+
+			ko.mapping.fromJS(data, mapping, _this);
+
+			_this.DO = func(function() {
+				//Depends on b, which may not be there yet
+				return _this.name() + parent.b.name(); 
+			});
+		};
+
+		var MyClassB = function(data, parent) {
+			var _this = this;
+
+			ko.mapping.fromJS(data, {}, _this);
+
+			_this.DO = func(function() {
+				//depends on a, which may not be there yet
+				return _this.name() + parent.a.name(); 
+			});
+		};
+
+		var MyClassC = function(data, parent, grandparent) {
+			var _this = this;
+
+			ko.mapping.fromJS(data, {}, _this);
+
+			_this.DO = func(function() {
+				//depends on a, which may not be there yet
+				return _this.name() + parent.name() + grandparent.a.name() + grandparent.b.name() ; 
+			});
+		};
+
+
+		var mapping = {
+			a: {
+				create: function(options) {
+					return new MyClassA(options.data, options.parent);
+				}
+			},
+			b: {
+				create: function(options) {
+					return new MyClassB(options.data, options.parent);
+				}
+			},
+			c: {
+				create: function(options) {
+					return new MyClassC(options.data, options.parent);
+				}
+
+			}
+		}
+
+		var mappedVM = ko.mapping.fromJS(model, mapping);
+
+
+		equal(mappedVM.a.DO(), "ab");
+		equal(mappedVM.b.DO(), "ba");
+		equal(mappedVM.a.c.DO(), "caab");
+	});
+
+
 	test('dependentObservable.fn extensions are not missing during mapping', function() {
 		var obj = {
 			x: 1
@@ -461,7 +562,6 @@ var generateProxyTests = function(useComputed) {
 		var result = ko.mapping.fromJS(obj, {
 			"items": {
 				create: function(options) {
-					debugger;
 					if (options.data.id == "b")
 						return options.skip;
 					else 
