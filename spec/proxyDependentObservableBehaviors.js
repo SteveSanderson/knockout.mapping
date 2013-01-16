@@ -176,7 +176,6 @@ var generateProxyTests = function(useComputed) {
 
 	test('dependentObservables with a write callback are passed through', function() {
 		var mapped = test.create({ useWriteCallback: true });
-		equal(mapped.a.DO.hasWriteFunction, true);
 		
 		mapped.a.DO("hello");
 		equal(test.written, "hello");
@@ -185,7 +184,14 @@ var generateProxyTests = function(useComputed) {
 	
 	test('dependentObservables without a write callback do not get a write callback', function() {
 		var mapped = test.create({ useWriteCallback: false });
-		equal(mapped.a.DO.hasWriteFunction, false);
+		
+		var caught = false;
+		try {
+			mapped.a.DO("hello");
+		} catch {
+			caught = true;
+		}
+		equal(caught, true);
 	});
 	
 	asyncTest('undeferred dependentObservables that are NOT used immediately SHOULD be auto-evaluated after mapping', function() {
