@@ -188,7 +188,7 @@ var generateProxyTests = function(useComputed) {
 		var caught = false;
 		try {
 			mapped.a.DO("hello");
-		} catch {
+		} catch(e) {
 			caught = true;
 		}
 		equal(caught, true);
