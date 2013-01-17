@@ -245,7 +245,9 @@ var generateProxyTests = function(useComputed) {
 	});
 
 	test('can subscribe to proxy dependentObservable', function() {
+		expect(0);
 		var mapped = test.create({ deferEvaluation: true, useReadCallback: true });
+		var subscriptionTriggered = false;
 		mapped.a.DO.subscribe(function() {
 		});
 	});
@@ -390,6 +392,7 @@ var generateProxyTests = function(useComputed) {
 		equal(mappedVM.b.DO(), "ba");
 	});
 	
+
 
 	test('dependentObservable evaluation for nested is defferred until after mapping takes place', function() {
 		var model = {
