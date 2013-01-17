@@ -79,6 +79,7 @@
 	exports.fromJS = function (jsObject /*, inputOptions, target*/ ) {
 		if (arguments.length == 0) throw new Error("When calling ko.fromJS, pass the object you want to convert.");
 
+		// When mapping is completed, even with an exception, reset the nesting level
 		try {
 			if (!mappingNesting++) {
 				dependentObservables = [];
@@ -110,11 +111,6 @@
 				result = target;
 			}
 
-			// Save any new mapping options in the view model, so that updateFromJS can use them later.
-			result[mappingProperty] = merge(result[mappingProperty], options);
-
-			return result;
-		} finally {
 			// Evaluate any dependent observables that were proxied.
 			// Do this after the model's observables have been created
 			if (!--mappingNesting) {
@@ -123,6 +119,13 @@
 					if (DO) DO();
 				}
 			}
+
+			// Save any new mapping options in the view model, so that updateFromJS can use them later.
+			result[mappingProperty] = merge(result[mappingProperty], options);
+
+			return result;
+		} finally {
+			mappingNesting = 0;
 		}
 	};
 
