@@ -628,9 +628,11 @@ test('ko.mapping.fromJS should not map top-level objects on the supplied overrid
 });
 
 test('ko.mapping.fromJS should allow non-unique atomic properties', function () {
-	ko.mapping.fromJS({
+	var vm = ko.mapping.fromJS({
 		a: [1, 2, 1]
 	});
+
+	deepEqual(vm.a(), [1, 2, 1]);
 });
 /* speed optimizations don't allow this anymore...
 test('ko.mapping.fromJS should not allow non-unique non-atomic properties', function () {
@@ -1656,7 +1658,13 @@ test('ko.mapping.fromJS should properly map objects that appear in multiple plac
 test('ko.mapping.fromJS should properly update arrays containing a NULL key', function() {
 	var data = [1,2,3,null];
 	var model=ko.mapping.fromJS(data);
+	
+	deepEqual(model(), [1,2,3,null]);
+
+	data = [null,1,2,3];
 	ko.mapping.fromJS(data, {}, model);
+
+	deepEqual(model(), [null,1,2,3]);
 });
 
 test('ko.mapping.visitModel will pass in correct parent names', function() {

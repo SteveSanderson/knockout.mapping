@@ -56,6 +56,7 @@ test('Store', function() {
 	equal(viewModel.Selected().name(), "Product2");
 });
 
+//https://github.com/SteveSanderson/knockout.mapping/issues/34
 test('Issue #34', function() {
 	var importData = function(dataArray, target) {
 		var mapping = {
@@ -81,9 +82,13 @@ test('Issue #34', function() {
 	viewModel.load();
 	viewModel.load();
 	viewModel.load();
+
+	deepEqual(viewModel.things(), [{"id":1}]);
 });
 
 test('Adding large amounts of items to array is slow', function() {
+	expect(0);
+
 	var numItems = 5000;
 	var data = [];
 	for (var t=0;t<numItems;t++) {
@@ -249,8 +254,13 @@ test('Issue #33', function() {
         id: ++i
     });
 
+    equal(vm.items().length, 2);
 	vm.items()[1]._remove();
+
+	equal(vm.items().length, 1);
 	vm.items()[0]._remove();
+
+	equal(vm.items().length, 0);
 });
 
 test('Issue #86', function() {
@@ -294,10 +304,13 @@ test('Issue #86', function() {
 	equal(model.filters.a(), "a1 modified");
 });
 
+//https://github.com/SteveSanderson/knockout.mapping/issues/107
 test('Issue #107', function () {
 	var model = ko.mapping.fromJS({ foo: 'bar' }, {
 		fiz: 'applesauce'
 	});
 
 	ko.mapping.fromJS({ foo: 'baz' }, model);
+
+	equal(model.foo(), "baz");
 });
