@@ -79,7 +79,6 @@
 	exports.fromJS = function (jsObject /*, inputOptions, target*/ ) {
 		if (arguments.length == 0) throw new Error("When calling ko.fromJS, pass the object you want to convert.");
 
-		// When mapping is completed, even with an exception, reset the nesting level
 		try {
 			if (!mappingNesting++) {
 				dependentObservables = [];
@@ -124,8 +123,9 @@
 			result[mappingProperty] = merge(result[mappingProperty], options);
 
 			return result;
-		} finally {
+		} catch(e) {
 			mappingNesting = 0;
+			throw e;
 		}
 	};
 
