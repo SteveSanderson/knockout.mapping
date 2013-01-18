@@ -245,7 +245,9 @@ var generateProxyTests = function(useComputed) {
 	});
 
 	test('can subscribe to proxy dependentObservable', function() {
+		expect(0);
 		var mapped = test.create({ deferEvaluation: true, useReadCallback: true });
+		var subscriptionTriggered = false;
 		mapped.a.DO.subscribe(function() {
 		});
 	});
@@ -390,6 +392,66 @@ var generateProxyTests = function(useComputed) {
 		equal(mappedVM.b.DO(), "ba");
 	});
 	
+	test('dependentObservable mappingNesting is reset after exception', function() {
+		var model = {
+			a: { name: "a" }
+		};
+
+		//First we throw a custom exception in the nested create and make sure it does throw
+		function CustomError( message ) {
+    		this.message = message;
+  		}
+  		CustomError.prototype.toString = function() {
+    		return this.message;
+  		};
+
+		throws( 
+			function()
+			{
+				ko.mapping.fromJS(model, {
+					create:function(){ throw new CustomError("Create Threw");}
+				});
+			},
+			CustomError ,
+			"fromJS throws correct 'CustomError' error type"
+		);
+
+
+		//Second make sure mappingNesting was reset.
+		//if mappingNesting wasn't reset the DO wouldn't have been evaluated before fromJS returning
+		var obj = {
+			inner: {
+				dependency: 1
+			}
+		};
+		
+		var inner = function(data) {
+			var _this = this;
+			ko.mapping.fromJS(data, {}, _this);
+			
+			_this.DO = func(function() {
+				_this.dependency();
+			});
+
+			_this.evaluationCount = 0;
+			_this.DO.subscribe(function() {
+				_this.evaluationCount++;
+			});
+		};
+		
+		var mapping = {
+			inner: {
+				create: function(options) {
+					return new inner(options.data);
+				}
+			}
+		};
+		
+		var mapped = ko.mapping.fromJS(obj, mapping);
+		var i = mapped.inner;
+		equal(i.evaluationCount, 1); //it's evaluated once prior to fromJS returning
+
+	});
 
 	test('dependentObservable evaluation for nested is defferred until after mapping takes place', function() {
 		var model = {
