@@ -183,8 +183,8 @@
 
 	exports.getType = function(x) {
 		if ((x) && (typeof (x) === "object")) {
-			if (x.constructor == (new Date).constructor) return "date";
-			if (Object.prototype.toString.call(x) === "[object Array]") return "array";
+			if (x.constructor === Date) return "date";
+			if (x.constructor === Array) return "array";
 		}
 		return typeof x;
 	}
