@@ -1,3 +1,8 @@
+Release 2.4.0 - February 4th, 2013
+
+* Removed asynchronous processing that was used to reset mapping nesting
+* Improved getType performance
+
 Release 2.3.5 - December 10th, 2012
 
 * Issue #121: Added functionality so that explicit declared none observable members on a ViewModel will remain none observable after mapping
