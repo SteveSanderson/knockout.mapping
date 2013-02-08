@@ -1,4 +1,4 @@
-/// Knockout Mapping plugin v2.4.0
+/// Knockout Mapping plugin v2.4.1
 /// (c) 2013 Steven Sanderson, Roy Jacobs - http://knockoutjs.com/
 /// License: MIT (http://www.opensource.org/licenses/mit-license.php)
 (function (factory) {
@@ -118,7 +118,12 @@
 			if (!--mappingNesting) {
 				while (dependentObservables.length) {
 					var DO = dependentObservables.pop();
-					if (DO) DO();
+					if (DO) {
+						DO();
+						
+						// Move this magic property to the underlying dependent observable
+						DO.__DO["throttleEvaluation"] = DO["throttleEvaluation"];
+					}
 				}
 			}
 
@@ -275,6 +280,7 @@
 					deferEvaluation: true
 				});
 				if (DEBUG) wrapped._wrapper = true;
+				wrapped.__DO = DO;
 				return wrapped;
 			};
 			
@@ -464,7 +470,10 @@
 					}
 					
 					if (ko.isWriteableObservable(mappedRootObject[indexer])) {
-						mappedRootObject[indexer](ko.utils.unwrapObservable(value));
+						value = ko.utils.unwrapObservable(value);
+						if (mappedRootObject[indexer]() !== value) {
+							mappedRootObject[indexer](value);
+						}
 					} else {
 						value = mappedRootObject[indexer] === undefined ? value : ko.utils.unwrapObservable(value);
 						mappedRootObject[indexer] = value;
@@ -525,6 +534,10 @@
 					var keys = filterArrayByKey(mappedRootObject(), keyCallback);
 					var key = keyCallback(item);
 					return ko.utils.arrayIndexOf(keys, key);
+				}
+
+				mappedRootObject.mappedGet = function (item) {
+					return mappedRootObject()[mappedRootObject.mappedIndexOf(item)];
 				}
 
 				mappedRootObject.mappedCreate = function (value) {

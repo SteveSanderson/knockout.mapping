@@ -1,3 +1,9 @@
+Release 2.4.1 - February 8th, 2013
+
+* Added mappedGet for observable arrays
+* Issue #134: Throttle issue using mapping
+* Issue #135: Why is custom update for observableArray firing twice when using mapping plugin?
+
 Release 2.4.0 - February 4th, 2013
 
 * Removed asynchronous processing that was used to reset mapping nesting
