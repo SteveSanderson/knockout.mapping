@@ -524,6 +524,10 @@
 					return ko.utils.arrayIndexOf(keys, key);
 				}
 
+				mappedRootObject.mappedGet = function (item) {
+					return mappedRootObject()[mappedRootObject.mappedIndexOf(item)];
+				}
+
 				mappedRootObject.mappedCreate = function (value) {
 					if (mappedRootObject.mappedIndexOf(value) !== -1) {
 						throw new Error("There already is an object with the key that you specified.");
