@@ -195,7 +195,7 @@ var generateProxyTests = function(useComputed) {
 						dependency(dependency() + 1);
 						return dependency();
 					});
-					var ex = f.extend({ throttle: 100 });
+					var ex = f.extend({ throttle: 1 });
 					return ex;
 				}
 			}
@@ -210,7 +210,7 @@ var generateProxyTests = function(useComputed) {
 		window.setTimeout(function() {
 			start();
 			equal(mapped.a(), 1);
-		}, 100);
+		}, 1);
 	});
 	
 	test('dependentObservables without a write callback do not get a write callback', function() {
