@@ -1610,6 +1610,22 @@ test('ko.mapping.fromJS should work on unmapped objects', function() {
 	equal(obj()[0], 'b');
 });
 
+test('ko.mapping.fromJS should update an array only once', function() {
+	var obj = {
+		a: ko.observableArray()
+	};
+	
+	var updateCount = 0;
+	obj.a.subscribe(function() {
+		debugger;
+		updateCount++;
+	});
+	
+	ko.mapping.fromJS({ a: [1, 2, 3] }, {}, obj);
+	
+	equal(updateCount, 1);
+});
+
 test('ko.mapping.fromJSON should merge options from subsequent calls', function() {
 	var obj = ['a'];
 	

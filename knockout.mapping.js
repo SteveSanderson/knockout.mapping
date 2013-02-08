@@ -461,7 +461,10 @@
 					}
 					
 					if (ko.isWriteableObservable(mappedRootObject[indexer])) {
-						mappedRootObject[indexer](ko.utils.unwrapObservable(value));
+						value = ko.utils.unwrapObservable(value);
+						if (mappedRootObject[indexer]() !== value) {
+							mappedRootObject[indexer](value);
+						}
 					} else {
 						value = mappedRootObject[indexer] === undefined ? value : ko.utils.unwrapObservable(value);
 						mappedRootObject[indexer] = value;
