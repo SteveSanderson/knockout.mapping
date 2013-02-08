@@ -1617,7 +1617,6 @@ test('ko.mapping.fromJS should update an array only once', function() {
 	
 	var updateCount = 0;
 	obj.a.subscribe(function() {
-		debugger;
 		updateCount++;
 	});
 	
