@@ -115,7 +115,12 @@
 			if (!--mappingNesting) {
 				while (dependentObservables.length) {
 					var DO = dependentObservables.pop();
-					if (DO) DO();
+					if (DO) {
+						DO();
+						
+						// Move this magic property to the underlying dependent observable
+						DO.__DO["throttleEvaluation"] = DO["throttleEvaluation"];
+					}
 				}
 			}
 
@@ -272,6 +277,7 @@
 					deferEvaluation: true
 				});
 				if (DEBUG) wrapped._wrapper = true;
+				wrapped.__DO = DO;
 				return wrapped;
 			};
 			

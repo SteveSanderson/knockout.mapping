@@ -182,6 +182,37 @@ var generateProxyTests = function(useComputed) {
 		equal(test.writeEvaluationCount, 1);
 	});
 	
+	asyncTest('throttleEvaluation is correctly applied', function() {
+		var obj = {
+			a: "hello"
+		};
+	
+		var dependency = ko.observable(0);
+		var mapped = ko.mapping.fromJS(obj, {
+			a: {
+				create: function() {
+					var f = func(function() {
+						dependency(dependency() + 1);
+						return dependency();
+					});
+					var ex = f.extend({ throttle: 100 });
+					return ex;
+				}
+			}
+		});
+		
+		// Even though the dependency updates many times, it should be throttled to only one update
+		dependency.valueHasMutated();
+		dependency.valueHasMutated();
+		dependency.valueHasMutated();
+		dependency.valueHasMutated();
+		
+		window.setTimeout(function() {
+			start();
+			equal(mapped.a(), 1);
+		}, 100);
+	});
+	
 	test('dependentObservables without a write callback do not get a write callback', function() {
 		var mapped = test.create({ useWriteCallback: false });
 		
