@@ -28,18 +28,27 @@
 		observe: []
 	};
 	var defaultOptions = _defaultOptions;
-
-	// Author: KennyTM @ StackOverflow
-	function unionArrays (x, y) {
-		var obj = {};
-		for (var i = x.length - 1; i >= 0; -- i) obj[x[i]] = x[i];
-		for (var i = y.length - 1; i >= 0; -- i) obj[y[i]] = y[i];
-		var res = [];
-
-		for (var k in obj) {
-			res.push(obj[k]);
-		};
-
+	
+	function unionArrays() {
+		var args = arguments,
+		l = args.length,
+		obj = {},
+		res = [],
+		i, j, k;
+		
+		while (l--) {
+			k = args[l];
+			i = k.length;
+			
+			while (i--) {
+				j = k[i];
+				if (!obj[j]) {
+					obj[j] = 1;
+					res.push(j);
+				}
+			}	
+		}
+		
 		return res;
 	}
 
