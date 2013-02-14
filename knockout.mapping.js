@@ -470,7 +470,7 @@
 					
 					if(options.observe.length > 0 && ko.utils.arrayIndexOf(options.observe, fullPropertyName) == -1)
 					{
-						mappedRootObject[indexer] = ko.utils.unwrapObservable(value);
+						mappedRootObject[indexer] = value();
 						options.copiedProperties[fullPropertyName] = true;
 						return;
 					}
