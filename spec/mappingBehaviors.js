@@ -1778,34 +1778,6 @@ test('ko.mapping.fromJS should copy specified single property, also when going b
 	equal(js.b, undefined);
 });
 
-test('ko.mapping.fromJS with observe option should not fail when map data with sub-object', function() {
-	var data = {
-		a: "a",
-		b: {
-			c: "c"
-		}
-	};
-	
-	var result = ko.mapping.fromJS(data, { observe: "a" });
-	equal(ko.isObservable(result.a), true);	
-	equal(ko.isObservable(result.b), false);	
-	equal(ko.isObservable(result.b.c), false);	
-});
-
-test('ko.mapping.fromJS should observe property in sub-object', function() {
-	var data = {
-		a: "a",
-		b: {
-			c: "c"
-		}
-	};
-	
-	var result = ko.mapping.fromJS(data, { observe: "b.c" });
-	equal(ko.isObservable(result.a), false);	
-	equal(ko.isObservable(result.b), false);	
-	equal(ko.isObservable(result.b.c), true);	
-});
-
 test('ko.mapping.fromJS explicit declared none observable members should not be mapped to an observable', function() {
 	var data = {
 		a: "a",
