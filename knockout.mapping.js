@@ -24,6 +24,7 @@
 	var _defaultOptions = {
 		include: ["_destroy"],
 		ignore: [],
+                ignoreCallback: null,
 		copy: [],
 		observe: []
 	};
@@ -162,6 +163,7 @@
 
 		if (arguments.length == 0) throw new Error("When calling ko.mapping.toJS, pass the object you want to convert.");
 		if (exports.getType(defaultOptions.ignore) !== "array") throw new Error("ko.mapping.defaultOptions().ignore should be an array.");
+		if (defaultOptions.ignoreCallback != null && exports.getType(defaultOptions.ignoreCallback) !== "function") throw new Error("ko.mapping.defaultOptions().ignoreCallback should be a function.");
 		if (exports.getType(defaultOptions.include) !== "array") throw new Error("ko.mapping.defaultOptions().include should be an array.");
 		if (exports.getType(defaultOptions.copy) !== "array") throw new Error("ko.mapping.defaultOptions().copy should be an array.");
 
@@ -191,7 +193,8 @@
 		defaultOptions = {
 			include: _defaultOptions.include.slice(0),
 			ignore: _defaultOptions.ignore.slice(0),
-			copy: _defaultOptions.copy.slice(0)
+			copy: _defaultOptions.copy.slice(0),
+			ignoreCallback: _defaultOptions.ignoreCallback
 		};
 	};
 
@@ -224,11 +227,13 @@
 			options.include = mergeArrays(otherOptions.include, options.include);
 			options.copy = mergeArrays(otherOptions.copy, options.copy);
 			options.observe = mergeArrays(otherOptions.observe, options.observe);
+			options.ignoreCallback = options.ignoreCallback ? options.ignoreCallback : otherOptions.ignoreCallback;
 		}
 		options.ignore = mergeArrays(options.ignore, defaultOptions.ignore);
 		options.include = mergeArrays(options.include, defaultOptions.include);
 		options.copy = mergeArrays(options.copy, defaultOptions.copy);
 		options.observe = mergeArrays(options.observe, defaultOptions.observe);
+ 		options.ignoreCallback = options.ignoreCallback ? options.ignoreCallback : defaultOptions.ignoreCallback;
 
 		options.mappedProperties = options.mappedProperties || {};
 		options.copiedProperties = options.copiedProperties || {};
@@ -450,6 +455,9 @@
 						return;
 					}
 
+					if (options.ignoreCallback != null && options.ignoreCallback(fullPropertyName)) {
+		                        	return;
+		                        }
 					if (ko.utils.arrayIndexOf(options.copy, fullPropertyName) != -1) {
 						mappedRootObject[indexer] = rootObject[indexer];
 						return;
@@ -733,6 +741,7 @@
 		visitPropertiesOrArrayEntries(unwrappedRootObject, function (indexer) {
 			if (options.ignore && ko.utils.arrayIndexOf(options.ignore, indexer) != -1) return;
 
+			if (options.ignoreCallback != null && options.ignoreCallback(indexer)) return;
 			var propertyValue = unwrappedRootObject[indexer];
 			options.parentName = getPropertyName(parentName, unwrappedRootObject, indexer);
 
