@@ -191,7 +191,8 @@
 		defaultOptions = {
 			include: _defaultOptions.include.slice(0),
 			ignore: _defaultOptions.ignore.slice(0),
-			copy: _defaultOptions.copy.slice(0)
+			copy: _defaultOptions.copy.slice(0),
+			observe: _defaultOptions.observe.slice(0)
 		};
 	};
 
