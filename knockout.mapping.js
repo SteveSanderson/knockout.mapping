@@ -748,7 +748,7 @@
 						var mappedProperties = unwrappedRootMappingProperty.mappedProperties;
 						if (mappedProperties && !mappedProperties[indexer]) {
 							var copiedProperties = unwrappedRootMappingProperty.copiedProperties;
-							if (copiedProperties && !copiedProperties[indexer] && !(exports.getType(unwrappedRootObject) === "array")) {
+							if (copiedProperties && !copiedProperties[indexer] && (exports.getType(unwrappedRootObject) !== "array")) {
 								return;
 							}
 						}
