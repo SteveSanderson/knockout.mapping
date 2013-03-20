@@ -61,7 +61,7 @@
 				if (key && destination[key] && destType !== "array" && destType !== "string") {
 					extendObject(destination[key], source[key]);
 				} else {
-					var bothArrays = exports.getType(destination[key]) === "array" && exports.getType(source[key]) === "array";
+					var bothArrays = destType === "array" && exports.getType(source[key]) === "array";
 					if (bothArrays) {
 						destination[key] = unionArrays(destination[key], source[key]);
 					} else {
