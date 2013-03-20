@@ -237,12 +237,14 @@
 	}
 
 	function mergeArrays(a, b) {
-		if (exports.getType(a) !== "array") {
-			if (exports.getType(a) === "undefined") a = [];
+		var typeA = exports.getType(a);
+		if (typeA !== "array") {
+			if (typeA === "undefined") a = [];
 			else a = [a];
 		}
-		if (exports.getType(b) !== "array") {
-			if (exports.getType(b) === "undefined") b = [];
+		var typeB = exports.getType(b);
+		if (typeB !== "array") {
+			if (typeB === "undefined") b = [];
 			else b = [b];
 		}
 
