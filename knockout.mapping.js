@@ -673,9 +673,8 @@
 		return ko.utils.arrayMap(ko.utils.unwrapObservable(array), function (item) {
 			if (callback) {
 				return mapKey(item, callback);
-			} else {
-				return item;
 			}
+			return item;
 		});
 	}
 
