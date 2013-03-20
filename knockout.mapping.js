@@ -690,8 +690,11 @@
 	};
 
 	function canHaveProperties(object) {
+		if (object === null) {
+			return false;
+		}
 		var type = exports.getType(object);
-		return ((type === "object") || (type === "array")) && (object !== null);
+		return (type === "object") || (type === "array");
 	}
 
 	// Based on the parentName, this creates a fully classified name of a property
