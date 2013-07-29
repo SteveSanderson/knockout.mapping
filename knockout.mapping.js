@@ -813,4 +813,5 @@
 			return findBucket(key).get(key);
 		};
 	};
+	ko.mapping = exports;
 }));
