@@ -314,3 +314,10 @@ test('Issue #107', function () {
 
 	equal(model.foo(), "baz");
 });
+
+//https://github.com/SteveSanderson/knockout.mapping/issues/124
+test('Issue #124', function () {
+	var model = ko.mapping.fromJS({ foo: 'constructor' });
+
+	equal(model.foo(), 'constructor');
+});
