@@ -503,7 +503,7 @@
 
 			if (!ko.isObservable(mappedRootObject)) {
 				// When creating the new observable array, also add a bunch of utility functions that take the 'key' of the array items into account.
-				mappedRootObject = ko.observableArray([]);
+				mappedRootObject = exports.getType(rootObject) === "function" ? rootObject : ko.observableArray([]);
 
 				mappedRootObject.mappedRemove = function (valueOrPredicate) {
 					var predicate = typeof valueOrPredicate == "function" ? valueOrPredicate : function (value) {
