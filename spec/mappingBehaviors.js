@@ -1840,3 +1840,247 @@ test('ko.mapping.toJS explicit declared none observable members should be mapped
     equal(js.b, data.b);
 });
 
+test("ko.mapping.fromJS should map property specified by the mapping readonly property", function() {
+    var data = {
+        a: "a"
+    };
+
+    var mapping = {
+        readonly: "a"
+    };
+
+    var viewModel = ko.mapping.fromJS(data, mapping);
+
+    ok(ko.isObservable(viewModel.a));
+    equal(viewModel.a(), "a");
+});
+
+test("ko.mapping.fromJS should map multiple properties specified by the mapping readonly property", function() {
+    var data = {
+        a: "a",
+        b: "b"
+    };
+
+    var mapping = {
+        readonly: ["a", "b"]
+    };
+
+    var viewModel = ko.mapping.fromJS(data, mapping);
+
+    ok(ko.isObservable(viewModel.a));
+    ok(ko.isObservable(viewModel.b));
+    equal(viewModel.a(), "a")
+    equal(viewModel.b(), "b")
+});
+
+test("ko.mapping.toJS should serialize property specified by the mapping readonly property", function() {
+    var data = {
+        a: "a"
+    };
+
+    var mapping = {
+        readonly: "a"
+    };
+
+    var viewModel = ko.mapping.fromJS(data, mapping);
+
+    var serializedData = ko.mapping.toJS(viewModel);
+
+    equal(serializedData.a, "a");
+});
+
+test("ko.mapping.toJS should serialize array properties specified bye the mapping readonly property", function() {
+    var data = {
+       array: [{ id: 1, a: "1" }, { id: 2, a: "2" }]
+    };
+
+    var mapping = {
+        array: {
+            key: function (d) {
+                return ko.utils.unwrapObservable(d.id);
+            },
+            create: function(options){
+                return ko.mapping.fromJS(options.data, { readonly: "a" });
+            }
+        }
+    };
+
+    var viewModel = ko.mapping.fromJS(data, mapping);
+
+    ok(ko.isObservable(viewModel.array()[0].a))
+    ok(ko.isObservable(viewModel.array()[1].a))
+});
+
+test("ko.mapping.toJS should serialize multiple properties specified by the mapping readonly property", function() {
+    var data = {
+        a: "a",
+        b: "b"
+    };
+
+    var mapping = {
+        readonly: ["a", "b"]
+    };
+
+    var viewModel = ko.mapping.fromJS(data, mapping);
+
+    var serializedData = ko.mapping.toJS(viewModel);
+
+    equal(serializedData.a, "a");
+    equal(serializedData.b, "b");
+});
+
+test("ko.mapping.fromJS should not update property specified by the mapping readonly property", function() {
+    var data = {
+        a: "a",
+    };
+
+    var mapping = {
+        readonly: "a"
+    };
+
+    var viewModel = ko.mapping.fromJS(data, mapping);
+
+    var newData = {
+        a: "b"
+    };
+
+    ko.mapping.fromJS(newData, {}, viewModel);
+
+    equal(viewModel.a(), "a");
+});
+
+test("ko.mapping.fromJS should not update multiple properties specified by the mapping readonly property", function() {
+    var data = {
+        a: "a",
+        b: "b"
+    };
+
+    var mapping = {
+        readonly: ["a", "b"]
+    };
+
+    var viewModel = ko.mapping.fromJS(data, mapping);
+
+    var newData = {
+        a: "aa",
+        b: "bb"
+    };
+
+    ko.mapping.fromJS(newData, {}, viewModel);
+
+    equal(viewModel.a(), "a");
+    equal(viewModel.b(), "b");
+});
+
+test("ko.mapping.fromJS should not update nested property specified by the root mapping readonly property (replicates ignore behavior)", function() {
+    var data = {
+        nested: {
+            b: "b"
+        }
+    };
+
+    var mapping = {
+        readonly: ["nested.b"],
+        nested: {
+            create: function(options){
+                return ko.mapping.fromJS(options.data);
+            }
+        }
+    };
+
+    var viewModel = ko.mapping.fromJS(data, mapping);
+
+    var newData = {
+        nested: {
+            b: "bb"
+        }
+    };
+
+    ko.mapping.fromJS(newData, {}, viewModel);
+
+    equal(viewModel.nested.b(), "b");
+});
+
+test("ko.mapping.fromJS should not update nested property specified by the nested mapping readonly property", function() {
+    var data = {
+        nested: {
+            b: "b"
+        }
+    };
+
+    var mapping = {
+        nested: {
+            create: function(options){
+                return ko.mapping.fromJS(options.data, { readonly: "b" });
+            }
+        }
+    };
+
+    var viewModel = ko.mapping.fromJS(data, mapping);
+
+    var newData = {
+        nested: {
+            b: "bb"
+        }
+    };
+
+    ko.mapping.fromJS(newData, {}, viewModel);
+
+    equal(viewModel.nested.b(), "b");
+});
+
+test("ko.mapping.fromJS should not update property for array elements when specified in the mapping readonly property", function() {
+    var data = {
+       array: [{ id: 1, a: "1" }, { id: 2, a: "2" }]
+    };
+
+    var mapping = {
+        array: {
+            key: function (d) {
+                return ko.utils.unwrapObservable(d.id);
+            },
+            create: function(options){
+                return ko.mapping.fromJS(options.data, { readonly: "a" });
+            }
+        }
+    };
+
+    var viewModel = ko.mapping.fromJS(data, mapping);
+
+    var newData = {
+        array: [{ id: 1, a: "3" }, { id: 2, a: "4" }]
+    };
+
+    ko.mapping.fromJS(newData, {}, viewModel);
+
+    equal(viewModel.array()[0].a(), "1");
+    equal(viewModel.array()[1].a(), "2");
+});
+
+test('ko.mapping.fromJS should use the default readonly mapping', function() {
+    var data = {
+        a: "a",
+        b: "b",
+        c: "c"
+    };
+
+    var mapping = {
+        readonly: ["b"]
+    };
+    
+    ko.mapping.defaultOptions().readonly = ["a"];
+
+    var viewModel = ko.mapping.fromJS(data, mapping);
+
+    var newData = {
+        a: "aa",
+        b: "bb",
+        c: "cc"
+    };
+
+    ko.mapping.fromJS(newData, {}, viewModel);
+
+    equal(viewModel.a(), "a");
+    equal(viewModel.b(), "b");
+    equal(viewModel.c(), "cc");
+});

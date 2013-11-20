@@ -25,7 +25,8 @@
 		include: ["_destroy"],
 		ignore: [],
 		copy: [],
-		observe: []
+		observe: [],
+		readonly: []
 	};
 	var defaultOptions = _defaultOptions;
 	
@@ -192,7 +193,8 @@
 			include: _defaultOptions.include.slice(0),
 			ignore: _defaultOptions.ignore.slice(0),
 			copy: _defaultOptions.copy.slice(0),
-			observe: _defaultOptions.observe.slice(0)
+			observe: _defaultOptions.observe.slice(0),
+			readonly: _defaultOptions.readonly.slice(0)
 		};
 	};
 
@@ -225,11 +227,13 @@
 			options.include = mergeArrays(otherOptions.include, options.include);
 			options.copy = mergeArrays(otherOptions.copy, options.copy);
 			options.observe = mergeArrays(otherOptions.observe, options.observe);
+			options.readonly = mergeArrays(otherOptions.readonly, options.readonly);
 		}
 		options.ignore = mergeArrays(options.ignore, defaultOptions.ignore);
 		options.include = mergeArrays(options.include, defaultOptions.include);
 		options.copy = mergeArrays(options.copy, defaultOptions.copy);
 		options.observe = mergeArrays(options.observe, defaultOptions.observe);
+		options.readonly = mergeArrays(options.readonly, defaultOptions.readonly);
 
 		options.mappedProperties = options.mappedProperties || {};
 		options.copiedProperties = options.copiedProperties || {};
@@ -315,7 +319,8 @@
 		parentPropertyName = parentPropertyName || "";
 
 		// If this object was already mapped previously, take the options from there and merge them with our existing ones.
-		if (exports.isMapped(mappedRootObject)) {
+		var rootObjectIsMapped = exports.isMapped(mappedRootObject); 
+		if (rootObjectIsMapped) {
 			var previousMapping = ko.utils.unwrapObservable(mappedRootObject)[mappingProperty];
 			options = merge(previousMapping, options);
 		}
@@ -448,6 +453,11 @@
 					var fullPropertyName = parentPropertyName.length ? parentPropertyName + "." + indexer : indexer;
 
 					if (ko.utils.arrayIndexOf(options.ignore, fullPropertyName) != -1) {
+						return;
+					}
+					
+					if (((ko.utils.arrayIndexOf(options.readonly, indexer) != -1) || 
+						(ko.utils.arrayIndexOf(options.readonly, fullPropertyName) != -1)) && rootObjectIsMapped) {
 						return;
 					}
 
