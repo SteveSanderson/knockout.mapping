@@ -253,6 +253,16 @@
 	// The reason is that the dependent observables in the user-specified callback may contain references to properties that have not been mapped yet.
 	function withProxyDependentObservable(dependentObservables, callback) {
 		var localDO = ko.dependentObservable;
+		var localIWO = ko.isWriteableObservable;
+		
+		ko.isWriteableObservable = function(o) {
+			var tmp = ko.dependentObservable;
+			ko.dependentObservable = realKoDependentObservable;
+			var isWriteable = ko.isWriteableObservable(o);
+			ko.dependentObservable = tmp;
+			return isWriteable;
+		};
+		
 		ko.dependentObservable = function (read, owner, options) {
 			options = options || {};
 
@@ -267,12 +277,7 @@
 			// We wrap the original dependent observable so that we can remove it from the 'dependentObservables' list we need to evaluate after mapping has
 			// completed if the user already evaluated the DO themselves in the meantime.
 			var wrap = function (DO) {
-				// Temporarily revert ko.dependentObservable, since it is used in ko.isWriteableObservable
-				var tmp = ko.dependentObservable;
-				ko.dependentObservable = realKoDependentObservable;
 				var isWriteable = ko.isWriteableObservable(DO);
-				ko.dependentObservable = tmp;
-
 				var wrapped = realKoDependentObservable({
 					read: function () {
 						if (!isRemoved) {
@@ -305,6 +310,7 @@
 		ko.computed = ko.dependentObservable;
 		var result = callback();
 		ko.dependentObservable = localDO;
+		ko.isWriteableObservable = localIWO;
 		ko.computed = ko.dependentObservable;
 		return result;
 	}
