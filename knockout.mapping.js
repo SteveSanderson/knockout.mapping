@@ -237,13 +237,18 @@
 	}
 
 	function mergeArrays(a, b) {
-		if (exports.getType(a) !== "array") {
-			if (exports.getType(a) === "undefined") a = [];
-			else a = [a];
+		if (a === undefined) {
+			a = [];
 		}
-		if (exports.getType(b) !== "array") {
-			if (exports.getType(b) === "undefined") b = [];
-			else b = [b];
+		else if (exports.getType(a) !== "array") {
+			a = [a];
+		}
+		
+		if (b === undefined) {
+			b = [];
+		}
+		else if (exports.getType(b) !== "array") {
+			b = [b];
 		}
 
 		return ko.utils.arrayGetDistinctValues(a.concat(b));
