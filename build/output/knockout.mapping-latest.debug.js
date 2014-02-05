@@ -303,6 +303,49 @@
 	}
 
 	function updateViewModel(mappedRootObject, rootObject, options, parentName, parent, parentPropertyName, mappedParent) {
+
+		////////////////////////////////////////////////////////////////////////
+		/**
+		 * example: add normalize function to your mapping definition, like create or update. 
+		 * if in your update or create callbacks you expect for example an object, and you receive
+		 * a String, you can normalize the data using normalize callback:
+		 * normalize: function( options ){
+		 * 	if (!$.isPlainObject( options.data ) options.data = {};
+		 * 	return options.data;
+		 * }
+		 * 
+		 * */
+		
+		
+		var hasNormalizeCallback = function () {
+			return options[parentName] && options[parentName].normalize instanceof Function;
+		};
+		
+		var normalizeCallback = function (obj, data) {
+			var params = {
+				data: data || rootObject,
+				parent: mappedParent || parent,
+				target: ko.utils.unwrapObservable(obj)
+			};
+
+			if (ko.isWriteableObservable(obj)) {
+				params.observable = obj;
+			}
+
+			return options[parentName].normalize(params);
+		};
+
+		if( hasNormalizeCallback() ){
+			rootObject = normalizeCallback( mappedRootObject );
+		}
+		
+		////////////////////////////////////////////////////////////////////////
+		
+		
+		
+		
+		
+
 		var isArray = exports.getType(ko.utils.unwrapObservable(rootObject)) === "array";
 
 		parentPropertyName = parentPropertyName || "";
