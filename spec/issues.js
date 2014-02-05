@@ -314,3 +314,14 @@ test('Issue #107', function () {
 
 	equal(model.foo(), "baz");
 });
+
+//https://github.com/SteveSanderson/knockout.mapping/issues/177
+test('Issue #177', function () {
+	var model = ko.mapping.fromJS({});
+	var o = ko.observable();
+	var oa = ko.observableArray();
+
+	ko.mapping.fromJS({o: o, oa: oa}, model);
+	equal(model.o, o);
+	equal(model.oa, oa);
+});
