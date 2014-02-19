@@ -285,14 +285,14 @@
 						return DO(val);
 					},
 					deferEvaluation: true
-				});
+				}).extend({notify: 'always'});
 				if (DEBUG) wrapped._wrapper = true;
 				wrapped.__DO = DO;
 				return wrapped;
 			};
 			
 			options.deferEvaluation = true; // will either set for just options, or both read/options.
-			var realDependentObservable = new realKoDependentObservable(read, owner, options);
+			var realDependentObservable = new realKoDependentObservable(read, owner, options).extend({notify: 'always'});
 
 			if (!realDeferEvaluation) {
 				realDependentObservable = wrap(realDependentObservable);
