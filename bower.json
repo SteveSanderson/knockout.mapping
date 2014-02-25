@@ -1,0 +1,29 @@
+{
+  "name": "knockout.mapping",
+  "version": "2.4.1",
+  "authors": [
+	"Steve Sanderson"
+  ],
+  "description": "Object mapping plugin for KnockoutJS",
+  "main": "knockout.mapping.js",
+  "keywords": [
+    "knockout",
+    "knockoutjs",
+    "mapping",
+    "plugin",
+    "object"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/SteveSanderson/knockout.mapping",
+  "ignore": [
+    "**/.*",
+    "build/tools",
+    "build/build-linux",
+    "build/version-header.js",
+    "Package.nuspec",
+    "spec"
+  ],
+  "dependencies": {
+    "knockout": ">=2.0.0"
+  }
+}
