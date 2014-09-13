@@ -1,0 +1,23 @@
+{
+    "name": "knockout.mapping",
+    "version": "2.4.1",
+    "homepage": "http://knockoutjs.com/documentation/plugins-mapping.html",
+    "authors": [
+        "Steven Sanderson"
+    ],
+    "description": "Object mapping plugin for Knockout",
+    "dependencies": {
+        "knockout": "~3.2.0"
+    },
+    "main": [
+        "build/output/knockout.mapping-latest.js"
+    ],
+    "ignore": [
+        "*", "!build/output/*"
+    ],
+    "keywords": [
+        "knockout",
+        "mapping"
+    ],
+    "license": "MIT"
+}
