@@ -447,16 +447,16 @@
 				visitPropertiesOrArrayEntries(rootObject, function (indexer) {
 					var fullPropertyName = parentPropertyName.length ? parentPropertyName + "." + indexer : indexer;
 
-					if (ko.utils.arrayIndexOf(options.ignore, fullPropertyName) != -1) {
+					if (ko.utils.arrayIndexOf(options.ignore, indexer) != -1) {
 						return;
 					}
 
-					if (ko.utils.arrayIndexOf(options.copy, fullPropertyName) != -1) {
+					if (ko.utils.arrayIndexOf(options.copy, indexer) != -1) {
 						mappedRootObject[indexer] = rootObject[indexer];
 						return;
 					}
 
-					if(typeof rootObject[indexer] != "object" && typeof rootObject[indexer] != "array" && options.observe.length > 0 && ko.utils.arrayIndexOf(options.observe, fullPropertyName) == -1)
+					if(typeof rootObject[indexer] != "object" && typeof rootObject[indexer] != "array" && options.observe.length > 0 && ko.utils.arrayIndexOf(options.observe, indexer) == -1)
 					{
 						mappedRootObject[indexer] = rootObject[indexer];
 						options.copiedProperties[fullPropertyName] = true;
@@ -469,7 +469,7 @@
 					var retval = updateViewModel(mappedRootObject[indexer], rootObject[indexer], options, indexer, mappedRootObject, fullPropertyName, mappedRootObject);
 					var value = prevMappedProperty || retval;
 					
-					if(options.observe.length > 0 && ko.utils.arrayIndexOf(options.observe, fullPropertyName) == -1)
+					if(options.observe.length > 0 && ko.utils.arrayIndexOf(options.observe, indexer) == -1)
 					{
 						mappedRootObject[indexer] = ko.utils.unwrapObservable(value);
 						options.copiedProperties[fullPropertyName] = true;
