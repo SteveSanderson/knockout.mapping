@@ -447,20 +447,37 @@
 				visitPropertiesOrArrayEntries(rootObject, function (indexer) {
 					var fullPropertyName = parentPropertyName.length ? parentPropertyName + "." + indexer : indexer;
 
-					if (ko.utils.arrayIndexOf(options.ignore, fullPropertyName) != -1) {
+					if (ko.utils.arrayFirst(options.ignore, function (item) {
+							if (item.test instanceof Function) {
+								return item.test(fullPropertyName);
+							}
+							return fullPropertyName === item;
+						})) {
 						return;
 					}
 
-					if (ko.utils.arrayIndexOf(options.copy, fullPropertyName) != -1) {
+					if (ko.utils.arrayFirst(options.copy, function (item) {
+							if (item.test instanceof Function) {
+								return item.test(fullPropertyName);
+							}
+							return fullPropertyName === item;
+						})) {
 						mappedRootObject[indexer] = rootObject[indexer];
 						return;
 					}
 
-					if(typeof rootObject[indexer] != "object" && typeof rootObject[indexer] != "array" && options.observe.length > 0 && ko.utils.arrayIndexOf(options.observe, fullPropertyName) == -1)
+					if (typeof rootObject[indexer] != "object" && typeof rootObject[indexer] != "array" && options.observe.length > 0)
 					{
-						mappedRootObject[indexer] = rootObject[indexer];
-						options.copiedProperties[fullPropertyName] = true;
-						return;
+						if (!ko.utils.arrayFirst(options.observe, function (item) {
+								if (item.test instanceof Function) {
+									return item.test(fullPropertyName);
+								}
+								return fullPropertyName === item;
+							})) {
+							mappedRootObject[indexer] = rootObject[indexer];
+							options.copiedProperties[fullPropertyName] = true;
+							return;
+						}
 					}
 					
 					// In case we are adding an already mapped property, fill it with the previously mapped property value to prevent recursion.
@@ -468,12 +485,19 @@
 					var prevMappedProperty = visitedObjects.get(rootObject[indexer]);
 					var retval = updateViewModel(mappedRootObject[indexer], rootObject[indexer], options, indexer, mappedRootObject, fullPropertyName, mappedRootObject);
 					var value = prevMappedProperty || retval;
-					
-					if(options.observe.length > 0 && ko.utils.arrayIndexOf(options.observe, fullPropertyName) == -1)
+
+					if (options.observe.length > 0)
 					{
-						mappedRootObject[indexer] = ko.utils.unwrapObservable(value);
-						options.copiedProperties[fullPropertyName] = true;
-						return;
+						if (!ko.utils.arrayFirst(options.observe, function (item) {
+								if (item.test instanceof Function) {
+									return item.test(fullPropertyName);
+								}
+								return fullPropertyName === item;
+							})) {
+							mappedRootObject[indexer] = ko.utils.unwrapObservable(value);
+							options.copiedProperties[fullPropertyName] = true;
+							return;
+						}
 					}
 					
 					if (ko.isWriteableObservable(mappedRootObject[indexer])) {
