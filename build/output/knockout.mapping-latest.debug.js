@@ -560,9 +560,7 @@
 			}
 
 			var currentArrayKeys = filterArrayByKey(ko.utils.unwrapObservable(mappedRootObject), keyCallback).sort();
-			var newArrayKeys = filterArrayByKey(rootObject, keyCallback);
-			if (hasKeyCallback) newArrayKeys.sort();
-			var editScript = ko.utils.compareArrays(currentArrayKeys, newArrayKeys);
+			var newArrayKeys = [];//filterArrayByKey(rootObject, keyCallback);
 
 			var ignoreIndexOf = {};
 			
@@ -573,12 +571,19 @@
 			var optimizedKeys = true;
 			for (i = 0, j = unwrappedRootObject.length; i < j; i++) {
 				var key = keyCallback(unwrappedRootObject[i]);
+
+				newArrayKeys.push(key);
+
 				if (key === undefined || key instanceof Object) {
 					optimizedKeys = false;
 					break;
 				}
 				itemsByKey[key] = unwrappedRootObject[i];
 			}
+			if (hasKeyCallback) {
+				newArrayKeys.sort();
+			}
+			var editScript = ko.utils.compareArrays(currentArrayKeys, newArrayKeys);
 
 			var newContents = [];
 			var passedOver = 0;
