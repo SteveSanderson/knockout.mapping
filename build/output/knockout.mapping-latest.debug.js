@@ -785,10 +785,10 @@
 		var findBucket = function(key) {
 			var bucketKey;
 			try {
-				bucketKey = key;//JSON.stringify(key);
+				bucketKey = { __ko_mapping_key__: key };//JSON.stringify(key);
 			}
 			catch (e) {
-				bucketKey = "$$$";
+				bucketKey = { __ko_mapping_key__: "$$$" };
 			}
 
 			var bucket = buckets[bucketKey];
