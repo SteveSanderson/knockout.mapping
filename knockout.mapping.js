@@ -447,20 +447,37 @@
 				visitPropertiesOrArrayEntries(rootObject, function (indexer) {
 					var fullPropertyName = parentPropertyName.length ? parentPropertyName + "." + indexer : indexer;
 
-					if (ko.utils.arrayIndexOf(options.ignore, fullPropertyName) != -1) {
+					if (ko.utils.arrayFirst(options.ignore, function (item) {
+							if (item.test instanceof Function) {
+								return item.test(fullPropertyName);
+							}
+							return fullPropertyName === item;
+						})) {
 						return;
 					}
 
-					if (ko.utils.arrayIndexOf(options.copy, fullPropertyName) != -1) {
+					if (ko.utils.arrayFirst(options.copy, function (item) {
+							if (item.test instanceof Function) {
+								return item.test(fullPropertyName);
+							}
+							return fullPropertyName === item;
+						})) {
 						mappedRootObject[indexer] = rootObject[indexer];
 						return;
 					}
 
-					if(typeof rootObject[indexer] != "object" && typeof rootObject[indexer] != "array" && options.observe.length > 0 && ko.utils.arrayIndexOf(options.observe, fullPropertyName) == -1)
+					if (typeof rootObject[indexer] != "object" && typeof rootObject[indexer] != "array" && options.observe.length > 0)
 					{
-						mappedRootObject[indexer] = rootObject[indexer];
-						options.copiedProperties[fullPropertyName] = true;
-						return;
+						if (!ko.utils.arrayFirst(options.observe, function (item) {
+								if (item.test instanceof Function) {
+									return item.test(fullPropertyName);
+								}
+								return fullPropertyName === item;
+							})) {
+							mappedRootObject[indexer] = rootObject[indexer];
+							options.copiedProperties[fullPropertyName] = true;
+							return;
+						}
 					}
 					
 					// In case we are adding an already mapped property, fill it with the previously mapped property value to prevent recursion.
@@ -468,12 +485,19 @@
 					var prevMappedProperty = visitedObjects.get(rootObject[indexer]);
 					var retval = updateViewModel(mappedRootObject[indexer], rootObject[indexer], options, indexer, mappedRootObject, fullPropertyName, mappedRootObject);
 					var value = prevMappedProperty || retval;
-					
-					if(options.observe.length > 0 && ko.utils.arrayIndexOf(options.observe, fullPropertyName) == -1)
+
+					if (options.observe.length > 0)
 					{
-						mappedRootObject[indexer] = ko.utils.unwrapObservable(value);
-						options.copiedProperties[fullPropertyName] = true;
-						return;
+						if (!ko.utils.arrayFirst(options.observe, function (item) {
+								if (item.test instanceof Function) {
+									return item.test(fullPropertyName);
+								}
+								return fullPropertyName === item;
+							})) {
+							mappedRootObject[indexer] = ko.utils.unwrapObservable(value);
+							options.copiedProperties[fullPropertyName] = true;
+							return;
+						}
 					}
 					
 					if (ko.isWriteableObservable(mappedRootObject[indexer])) {
@@ -567,9 +591,7 @@
 			}
 
 			var currentArrayKeys = filterArrayByKey(ko.utils.unwrapObservable(mappedRootObject), keyCallback).sort();
-			var newArrayKeys = filterArrayByKey(rootObject, keyCallback);
-			if (hasKeyCallback) newArrayKeys.sort();
-			var editScript = ko.utils.compareArrays(currentArrayKeys, newArrayKeys);
+			var newArrayKeys = [];//filterArrayByKey(rootObject, keyCallback);
 
 			var ignoreIndexOf = {};
 			
@@ -580,12 +602,17 @@
 			var optimizedKeys = true;
 			for (i = 0, j = unwrappedRootObject.length; i < j; i++) {
 				var key = keyCallback(unwrappedRootObject[i]);
+				newArrayKeys.push(key);
 				if (key === undefined || key instanceof Object) {
 					optimizedKeys = false;
 					break;
 				}
 				itemsByKey[key] = unwrappedRootObject[i];
 			}
+			if (hasKeyCallback) {
+				newArrayKeys.sort();
+			}
+			var editScript = ko.utils.compareArrays(currentArrayKeys, newArrayKeys);
 
 			var newContents = [];
 			var passedOver = 0;
@@ -792,10 +819,10 @@
 		var findBucket = function(key) {
 			var bucketKey;
 			try {
-				bucketKey = key;//JSON.stringify(key);
+				bucketKey = { __ko_mapping_key__: key };//JSON.stringify(key);
 			}
 			catch (e) {
-				bucketKey = "$$$";
+				bucketKey = { __ko_mapping_key__: "$$$" };
 			}
 
 			var bucket = buckets[bucketKey];
