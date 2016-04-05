@@ -115,6 +115,7 @@
 			options = fillOptions(options);
 
 			var result = updateViewModel(target, jsObject, options);
+		    result = ko.utils.unwrapObservable(result);
 			if (target) {
 				result = target;
 			}
@@ -365,9 +366,13 @@
 			return options[parentName].update(params);
 		}
 
+        var ensureObservable = function(value) {
+            return ko.isObservable(value) ? value : ko.observable(value);
+        }
+
 		var alreadyMapped = visitedObjects.get(rootObject);
 		if (alreadyMapped) {
-			return alreadyMapped;
+			return ensureObservable(alreadyMapped);
 		}
 
 		parentName = parentName || "";
@@ -393,11 +398,11 @@
 						if (hasUpdateCallback()) {
 							var valueToWrite = updateCallback(mappedRootObject);
 							mappedRootObject(valueToWrite);
-							return valueToWrite;
+							return mappedRootObject;
 						} else {
 							var valueToWrite = ko.utils.unwrapObservable(rootObject);
 							mappedRootObject(valueToWrite);
-							return valueToWrite;
+							return mappedRootObject;
 						}
 					} else {
 						var hasCreateOrUpdateCallback = hasCreateCallback() || hasUpdateCallback();
@@ -488,6 +493,8 @@
 
 					options.mappedProperties[fullPropertyName] = true;
 				});
+
+			    mappedRootObject = ensureObservable(mappedRootObject);
 			}
 		} else { //mappedRootObject is an array
 			var changes = [];
