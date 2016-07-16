@@ -792,7 +792,7 @@
 		var findBucket = function(key) {
 			var bucketKey;
 			try {
-				bucketKey = key;//JSON.stringify(key);
+				bucketKey = validatedBucketKey(key);//JSON.stringify(key);
 			}
 			catch (e) {
 				bucketKey = "$$$";
@@ -805,6 +805,20 @@
 			}
 			return bucket;
 		};
+
+		//make sure the key doesn't step on Object.prototype:
+		var validatedBucketKey = function(key)
+        {
+            if ((typeof key === 'string' || key instanceof String) && 
+                Object.prototype.hasOwnProperty(key) )
+            {
+               return "$$"+ key + "$$";
+            }  
+            else
+            {
+                return key;
+            }
+        } 
 		
 		this.save = function (key, value) {
 			findBucket(key).save(key, value);
