@@ -7,6 +7,12 @@
 	} else if (typeof define === "function" && define["amd"]) {
 		// AMD anonymous module with hard-coded dependency on "knockout"
 		define(["knockout", "exports"], factory);
+	} else if (typeof define === "function" && define["cmd"]) {
+		// CMD for seajs
+		define(function(require, exports, module){
+			require("knockout");
+			factory(ko, ko.mapping = {});
+		});
 	} else {
 		// <script> tag: use the global `ko` object, attaching a `mapping` property
 		factory(ko, ko.mapping = {});
