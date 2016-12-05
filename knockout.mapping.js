@@ -443,6 +443,8 @@
 				visitedObjects.save(rootObject, mappedRootObject);
 				if (hasUpdateCallback()) return mappedRootObject;
 
+                                if (hasUpdateCallback()) return mappedRootObject;
+                                
 				// For non-atomic types, visit all properties and update recursively
 				visitPropertiesOrArrayEntries(rootObject, function (indexer) {
 					var fullPropertyName = parentPropertyName.length ? parentPropertyName + "." + indexer : indexer;
