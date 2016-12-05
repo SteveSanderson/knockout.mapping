@@ -21,6 +21,17 @@
 	var recognizedRootProperties = ["create", "update", "key", "arrayChanged"];
 	var emptyReturn = {};
 
+
+	// if you need to call two consecuents ko.mapping.fromJS, you shold call
+	// ko.mapping.evaluateDependentObservables() between them.
+	exports.evaluateDependentObservables = function(){
+		while (dependentObservables.length) {
+			var DO = dependentObservables.pop();
+			if (DO) DO();
+		}
+	}
+	
+
 	var _defaultOptions = {
 		include: ["_destroy"],
 		ignore: [],
